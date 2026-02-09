@@ -1,0 +1,7 @@
+{
+  "name": "Projeto Musas - Gestão de Emagrecimento",
+  "description": "Uma plataforma completa para consultores de emagrecimento acompanharem o progresso semanal de suas clientes, com dashboards personalizados, linha do tempo de evolução e insights gerados por IA.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
