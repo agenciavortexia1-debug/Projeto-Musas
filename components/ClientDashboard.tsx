@@ -21,12 +21,13 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
   client, entries, referrals, products, allClients = [], allEntries = [], onAddEntry, onAddReferral, onUpdateProfileImage, onLogout 
 }) => {
   const [activeTab, setActiveTab] = useState<'register' | 'progress' | 'refer' | 'ranking'>('progress');
-  const [isSidebarOpen, setSidebarOpen] = useState(false); // Mobile fecha por padrão
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [newWeight, setNewWeight] = useState<string>('');
   const [newWaist, setNewWaist] = useState<string>('');
   const [mood, setMood] = useState<'happy' | 'neutral' | 'sad'>('happy');
   const [notes, setNotes] = useState('');
   const [entryPhoto, setEntryPhoto] = useState<string | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
 
   const [friendName, setFriendName] = useState('');
   const [friendContact, setFriendContact] = useState('');
@@ -34,6 +35,40 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const entryPhotoRef = useRef<HTMLInputElement>(null);
+
+  // Função para comprimir imagem antes do upload
+  const compressImage = (base64Str: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = base64Str;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1024;
+        const MAX_HEIGHT = 1024;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        // Retorna como JPEG comprimido (0.7 de qualidade)
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,11 +91,28 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
     setActiveTab('progress');
   };
 
-  const handleEntryPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEntryPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setIsCompressing(true);
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string);
+        setEntryPhoto(compressed);
+        setIsCompressing(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleProfileImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => setEntryPhoto(reader.result as string);
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string);
+        onUpdateProfileImage(client.id, compressed);
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -74,7 +126,6 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
 
   return (
     <div className="flex min-h-screen bg-[#FFF9F9] font-inter">
-      {/* Overlay Mobile Sidebar */}
       {isSidebarOpen && <div className="fixed inset-0 bg-black/40 z-[60] lg:hidden" onClick={() => setSidebarOpen(false)}></div>}
 
       <aside className={`bg-white border-r border-rose-100 flex flex-col transition-all duration-300 fixed lg:sticky top-0 h-screen z-[70] 
@@ -129,14 +180,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
             </div>
             <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 text-rose-500"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" /></svg></button>
           </div>
-          <input type="file" ref={fileInputRef} onChange={(e) => {
-             const file = e.target.files?.[0];
-             if(file) {
-                const r = new FileReader();
-                r.onloadend = () => onUpdateProfileImage(client.id, r.result as string);
-                r.readAsDataURL(file);
-             }
-          }} accept="image/*" className="hidden" />
+          <input type="file" ref={fileInputRef} onChange={handleProfileImageUpload} accept="image/*" className="hidden" />
         </header>
 
         {activeTab === 'progress' && (
@@ -178,10 +222,23 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
 
                 <div className="space-y-2">
                    <label className="text-[8px] font-black uppercase text-rose-300 tracking-widest">Foto Obrigatória</label>
-                   <div onClick={() => entryPhotoRef.current?.click()} className="w-full h-40 border-2 border-dashed border-rose-100 rounded-2xl flex items-center justify-center cursor-pointer bg-rose-50/20 overflow-hidden relative">
-                      {entryPhoto ? <img src={entryPhoto} className="w-full h-full object-cover" /> : <div className="text-center"><svg className="w-8 h-8 text-rose-200 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812-1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg><p className="text-[8px] font-black uppercase text-rose-300">Tirar Foto</p></div>}
+                   <div onClick={() => !isCompressing && entryPhotoRef.current?.click()} className={`w-full h-40 border-2 border-dashed border-rose-100 rounded-2xl flex items-center justify-center cursor-pointer bg-rose-50/20 overflow-hidden relative transition-all ${isCompressing ? 'opacity-50 grayscale' : ''}`}>
+                      {isCompressing ? (
+                         <div className="text-center">
+                            <div className="w-6 h-6 border-2 border-rose-400 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                            <p className="text-[8px] font-black uppercase text-rose-400">Otimizando Foto...</p>
+                         </div>
+                      ) : entryPhoto ? (
+                        <img src={entryPhoto} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="text-center">
+                          <svg className="w-8 h-8 text-rose-200 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812-1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
+                          <p className="text-[8px] font-black uppercase text-rose-300">Câmera ou Galeria</p>
+                        </div>
+                      )}
                    </div>
-                   <input type="file" accept="image/*" capture="environment" ref={entryPhotoRef} onChange={handleEntryPhotoUpload} className="hidden" />
+                   {/* Removido capture="environment" para permitir Galeria */}
+                   <input type="file" accept="image/*" ref={entryPhotoRef} onChange={handleEntryPhotoUpload} className="hidden" />
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
@@ -191,7 +248,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
                 </div>
 
                 <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full h-24 bg-rose-50/20 rounded-xl p-4 text-xs outline-none" placeholder="Como foi sua semana?" />
-                <button type="submit" className="w-full bg-rose-600 text-white font-black py-5 rounded-xl text-[10px] uppercase shadow-xl shadow-rose-100 tracking-widest">Confirmar Registro</button>
+                <button type="submit" disabled={isCompressing} className={`w-full bg-rose-600 text-white font-black py-5 rounded-xl text-[10px] uppercase shadow-xl shadow-rose-100 tracking-widest ${isCompressing ? 'opacity-50' : ''}`}>Confirmar Registro</button>
              </form>
           </div>
         )}
