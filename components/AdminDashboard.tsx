@@ -27,11 +27,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [tempNotes, setTempNotes] = useState('');
+  const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
 
   const [newProdName, setNewProdName] = useState('');
   const [newProdReward, setNewProdReward] = useState('');
 
-  const getClientEntries = (clientId: string) => entries.filter(e => e.clientId === clientId).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const getClientEntries = (clientId: string) => [...entries]
+    .filter(e => e.clientId === clientId)
+    .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   
   const getClientStats = (client: Client) => {
     const clientEntries = entries.filter(e => e.clientId === client.id).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -71,6 +74,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   return (
     <div className="flex min-h-screen bg-[#FFF9F9] font-inter relative">
+      {/* Zoom Modal */}
+      {zoomedPhoto && (
+        <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 cursor-pointer" onClick={() => setZoomedPhoto(null)}>
+          <img src={zoomedPhoto} className="max-w-full max-h-full rounded-lg shadow-2xl animate-in zoom-in-95 duration-200" alt="Foto de validação" />
+          <button className="absolute top-6 right-6 text-white text-3xl">&times;</button>
+        </div>
+      )}
+
       {isSidebarOpen && <div className="fixed inset-0 bg-black/40 z-[60] lg:hidden" onClick={() => setSidebarOpen(false)}></div>}
 
       <aside className={`bg-white border-r border-rose-100 flex flex-col transition-all duration-300 fixed lg:sticky top-0 h-screen z-[70] 
@@ -140,7 +151,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <section className="lg:col-span-1">
                 <h3 className="text-[10px] font-bold text-neutral-800 uppercase tracking-widest mb-4">Minhas Alunas</h3>
-                <div className="grid grid-cols-1 gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="grid grid-cols-1 gap-2 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                   {activeClients.map(client => { 
                     const stats = getClientStats(client); 
                     return (
@@ -155,22 +166,54 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </section>
 
-              <section className="lg:col-span-2">
+              <section className="lg:col-span-2 space-y-6">
                 {selectedClient ? (
-                  <div className="bg-white p-6 sm:p-10 rounded-2xl border border-rose-100 shadow-sm space-y-8">
-                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4 border-b border-rose-50 pb-6">
-                      <h3 className="text-xl font-bold text-neutral-800 uppercase">{selectedClient.name}</h3>
-                      <div className="bg-rose-50 px-3 py-1 rounded-full text-[10px] font-bold text-rose-600 uppercase">Média: {getClientStats(selectedClient).weeklyLoss.toFixed(2)}kg/sem</div>
+                  <>
+                    <div className="bg-white p-6 sm:p-10 rounded-2xl border border-rose-100 shadow-sm space-y-8">
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 border-b border-rose-50 pb-6">
+                        <h3 className="text-xl font-bold text-neutral-800 uppercase">{selectedClient.name}</h3>
+                        <div className="bg-rose-50 px-3 py-1 rounded-full text-[10px] font-bold text-rose-600 uppercase">Média: {getClientStats(selectedClient).weeklyLoss.toFixed(2)}kg/sem</div>
+                      </div>
+                      <div className="h-64 sm:h-80"><WeightChart entries={entries.filter(e => e.clientId === selectedClient.id)} targetWeight={selectedClient.targetWeight} initialWeight={selectedClient.initialWeight} /></div>
+                      
+                      <div className="space-y-4 bg-rose-50/20 p-6 rounded-xl border border-rose-100">
+                        <h4 className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">Feedback Consultora</h4>
+                        <textarea value={tempNotes} onChange={(e) => setTempNotes(e.target.value)} className="w-full h-24 bg-white border border-rose-100 rounded-lg p-4 text-xs font-light outline-none" placeholder="Orientações para a aluna ver no painel dela..." />
+                        <button onClick={() => { onUpdateAdminNotes(selectedClientId!, tempNotes); alert("Feedback enviado!"); }} className="w-full bg-rose-600 text-white text-[10px] font-bold py-4 rounded-lg uppercase tracking-widest shadow-lg">Salvar e Enviar Nota</button>
+                      </div>
                     </div>
-                    <div className="h-64 sm:h-80"><WeightChart entries={getClientEntries(selectedClient.id)} targetWeight={selectedClient.targetWeight} initialWeight={selectedClient.initialWeight} /></div>
-                    <div className="space-y-4 bg-rose-50/20 p-6 rounded-xl border border-rose-100">
-                      <h4 className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">Feedback Consultora</h4>
-                      <textarea value={tempNotes} onChange={(e) => setTempNotes(e.target.value)} className="w-full h-24 bg-white border border-rose-100 rounded-lg p-4 text-xs font-light outline-none" placeholder="Orientações..." />
-                      <button onClick={() => { onUpdateAdminNotes(selectedClientId!, tempNotes); alert("Feedback enviado!"); }} className="w-full bg-rose-600 text-white text-[10px] font-bold py-4 rounded-lg uppercase tracking-widest shadow-lg">Salvar Nota</button>
+
+                    <div className="space-y-4">
+                      <h3 className="text-[10px] font-black text-neutral-800 uppercase tracking-widest">Histórico de Check-ins</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {getClientEntries(selectedClient.id).map((entry, idx) => (
+                          <div key={entry.id} className="bg-white p-4 rounded-2xl border border-rose-100 shadow-sm flex gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300" style={{ animationDelay: `${idx * 50}ms` }}>
+                            <div className="w-24 h-24 flex-shrink-0 bg-rose-50 rounded-xl overflow-hidden cursor-pointer" onClick={() => setZoomedPhoto(entry.photo)}>
+                              <img src={entry.photo} className="w-full h-full object-cover hover:scale-110 transition-transform" alt="Foto de pesagem" />
+                            </div>
+                            <div className="flex-1 space-y-2">
+                              <div className="flex justify-between items-start">
+                                <span className="text-[10px] font-black text-rose-600 uppercase">{new Date(entry.date).toLocaleDateString('pt-BR')}</span>
+                                <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase ${entry.mood === 'happy' ? 'bg-emerald-50 text-emerald-600' : entry.mood === 'neutral' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>
+                                  {entry.mood === 'happy' ? 'Radiante' : entry.mood === 'neutral' ? 'Bem' : 'Difícil'}
+                                </span>
+                              </div>
+                              <p className="text-lg font-black text-neutral-800">{entry.weight.toFixed(1)}kg</p>
+                              {entry.notes && <p className="text-[10px] text-neutral-500 italic font-light line-clamp-2 leading-tight">"{entry.notes}"</p>}
+                            </div>
+                          </div>
+                        ))}
+                        {getClientEntries(selectedClient.id).length === 0 && (
+                          <div className="col-span-full py-12 text-center text-rose-200 border-2 border-dashed border-rose-100 rounded-2xl italic text-[10px] uppercase font-bold">Nenhum registro enviado ainda</div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </>
                 ) : (
-                  <div className="h-48 flex items-center justify-center text-rose-200 border-2 border-dashed border-rose-100 rounded-2xl opacity-40 italic text-center p-8 text-[10px] uppercase font-bold tracking-widest">Selecione uma aluna</div>
+                  <div className="h-64 flex flex-col items-center justify-center text-rose-200 border-2 border-dashed border-rose-100 rounded-2xl opacity-40 italic text-center p-8 text-[10px] uppercase font-bold tracking-widest">
+                    <svg className="w-12 h-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg>
+                    Selecione uma aluna para ver os detalhes e fotos
+                  </div>
                 )}
               </section>
             </div>
