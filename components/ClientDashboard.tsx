@@ -23,7 +23,6 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
   const [activeTab, setActiveTab] = useState<'register' | 'progress' | 'refer' | 'ranking'>('progress');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [newWeight, setNewWeight] = useState<string>('');
-  const [newWaist, setNewWaist] = useState<string>('');
   const [mood, setMood] = useState<'happy' | 'neutral' | 'sad'>('happy');
   const [notes, setNotes] = useState('');
   const [entryPhoto, setEntryPhoto] = useState<string | null>(null);
@@ -36,7 +35,6 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const entryPhotoRef = useRef<HTMLInputElement>(null);
 
-  // Função para comprimir imagem antes do upload
   const compressImage = (base64Str: string): Promise<string> => {
     return new Promise((resolve) => {
       const img = new Image();
@@ -64,7 +62,6 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(img, 0, 0, width, height);
-        // Retorna como JPEG comprimido (0.7 de qualidade)
         resolve(canvas.toDataURL('image/jpeg', 0.7));
       };
     });
@@ -79,13 +76,11 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
     onAddEntry({
       date: new Date().toISOString(),
       weight: parseFloat(newWeight.replace(',','.')),
-      waist: newWaist ? parseFloat(newWaist.replace(',','.')) : undefined,
       mood,
       notes,
       photo: entryPhoto
     });
     setNewWeight('');
-    setNewWaist('');
     setNotes('');
     setEntryPhoto(null);
     setActiveTab('progress');
@@ -129,7 +124,8 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
       {isSidebarOpen && <div className="fixed inset-0 bg-black/40 z-[60] lg:hidden" onClick={() => setSidebarOpen(false)}></div>}
 
       <aside className={`bg-white border-r border-rose-100 flex flex-col transition-all duration-300 fixed lg:sticky top-0 h-screen z-[70] 
-        ${isSidebarOpen ? 'translate-x-0 w-72' : '-translate-x-full lg:translate-x-0 w-20'}`}>
+        ${isSidebarOpen ? 'translate-x-0 w-72' : '-translate-x-full lg:translate-x-0 w-20'}
+        ${!isSidebarOpen ? 'invisible lg:visible' : 'visible'}`}>
         
         <div className="p-6 border-b border-rose-50 flex items-center justify-between">
           {(isSidebarOpen || window.innerWidth >= 1024) && (
@@ -171,10 +167,10 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
 
       <main className="flex-1 p-4 sm:p-8 lg:p-12 w-full max-w-full overflow-x-hidden">
         <header className="flex justify-between items-center mb-8">
-          <div>
+          <div className="relative z-10">
             <h2 className="text-xl sm:text-2xl font-light">Olá, <span className="font-bold text-rose-600">{client.name.split(' ')[0]}</span></h2>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 relative z-10">
             <div onClick={() => fileInputRef.current?.click()} className="w-10 h-10 rounded-full border-2 border-white shadow shadow-rose-100 overflow-hidden bg-rose-50 cursor-pointer">
               {client.profileImage ? <img src={client.profileImage} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-rose-200 text-[10px] font-black">?</div>}
             </div>
@@ -215,9 +211,9 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
           <div className="max-w-xl mx-auto">
              <form onSubmit={handleSubmit} className="bg-white p-6 sm:p-10 rounded-2xl border border-rose-100 shadow-sm space-y-6">
                 <h3 className="text-xs font-black uppercase text-rose-600 tracking-widest text-center">Peso da Semana</h3>
-                <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-2"><label className="text-[8px] font-black uppercase text-rose-300 tracking-widest">Peso (kg)</label><input type="number" step="0.1" required value={newWeight} onChange={(e) => setNewWeight(e.target.value)} className="w-full px-4 py-3 bg-rose-50/50 rounded-xl outline-none text-base font-bold" placeholder="0.0" /></div>
-                   <div className="space-y-2"><label className="text-[8px] font-black uppercase text-rose-300 tracking-widest">Cintura (cm)</label><input type="number" step="0.1" value={newWaist} onChange={(e) => setNewWaist(e.target.value)} className="w-full px-4 py-3 bg-rose-50/50 rounded-xl outline-none text-base font-bold" placeholder="Opcional" /></div>
+                <div className="space-y-2">
+                   <label className="text-[8px] font-black uppercase text-rose-300 tracking-widest">Peso (kg)</label>
+                   <input type="number" step="0.1" required value={newWeight} onChange={(e) => setNewWeight(e.target.value)} className="w-full px-4 py-3 bg-rose-50/50 rounded-xl outline-none text-base font-bold" placeholder="0.0" />
                 </div>
 
                 <div className="space-y-2">
@@ -237,7 +233,6 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
                         </div>
                       )}
                    </div>
-                   {/* Removido capture="environment" para permitir Galeria */}
                    <input type="file" accept="image/*" ref={entryPhotoRef} onChange={handleEntryPhotoUpload} className="hidden" />
                 </div>
 

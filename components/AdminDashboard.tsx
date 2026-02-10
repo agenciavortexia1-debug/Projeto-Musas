@@ -24,7 +24,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   clients, entries, referrals, products, onLogout, onToggleClientActive, onUpdateAdminNotes, onUpdateClientPassword, onDeleteClient, onUpdateReferralStatus, onPayCommission, onAddProduct, onDeleteProduct
 }) => {
   const [activeMenu, setActiveMenu] = useState<'acompanhamento' | 'habilitacao' | 'clientes' | 'indicacoes' | 'ranking' | 'produtos'>('acompanhamento');
-  const [isSidebarOpen, setSidebarOpen] = useState(false); // Mobile fecha por padrão
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [tempNotes, setTempNotes] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
@@ -77,7 +77,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {isSidebarOpen && <div className="fixed inset-0 bg-black/40 z-[60] lg:hidden" onClick={() => setSidebarOpen(false)}></div>}
 
       <aside className={`bg-white border-r border-rose-100 flex flex-col transition-all duration-300 fixed lg:sticky top-0 h-screen z-[70] 
-        ${isSidebarOpen ? 'translate-x-0 w-72' : '-translate-x-full lg:translate-x-0 w-20'}`}>
+        ${isSidebarOpen ? 'translate-x-0 w-72' : '-translate-x-full lg:translate-x-0 w-20'}
+        ${!isSidebarOpen ? 'invisible lg:visible' : 'visible'}`}>
         
         <div className="p-6 border-b border-rose-50 flex items-center justify-between">
           {(isSidebarOpen || window.innerWidth >= 1024) && (
@@ -115,10 +116,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       <main className="flex-1 p-4 sm:p-8 lg:p-12 w-full max-w-full overflow-x-hidden">
         <header className="flex justify-between items-center mb-8">
-          <div>
+          <div className="relative z-10">
             <h2 className="text-xl sm:text-3xl font-light text-neutral-800">Painel <span className="font-bold text-rose-600 tracking-tighter">ADM</span></h2>
           </div>
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 bg-white border border-rose-100 rounded-lg text-rose-500">
+          <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 bg-white border border-rose-100 rounded-lg text-rose-500 relative z-10">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
           </button>
         </header>
