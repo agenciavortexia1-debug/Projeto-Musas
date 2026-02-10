@@ -59,6 +59,7 @@ const WeightChart: React.FC<WeightChartProps> = ({ entries, targetWeight, initia
             tick={{ fontSize: 10, fill: '#9ca3af', fontWeight: 500 }}
           />
           <Tooltip 
+            formatter={(value: number) => [`${value} kg`, "Peso"]}
             contentStyle={{ 
               borderRadius: '12px', 
               border: 'none', 
@@ -96,6 +97,7 @@ const WeightChart: React.FC<WeightChartProps> = ({ entries, targetWeight, initia
           <Line 
             type="monotone" 
             dataKey="weight" 
+            name="Peso"
             stroke="#db2777" 
             strokeWidth={3} 
             dot={{ r: 5, fill: '#db2777', strokeWidth: 2, stroke: '#fff' }}
