@@ -126,7 +126,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
               {[
                 { label: 'Ativas', val: activeClients.length },
-                { label: 'KG OFF', val: totalWeightLost.toFixed(1), unit: 'kg', main: true },
+                { label: 'Peso total eliminado', val: totalWeightLost.toFixed(1), unit: 'kg', main: true },
                 { label: 'Média/Sem', val: averageWeeklyLossGlobal.toFixed(2), highlight: true },
                 { label: 'Pendentes', val: `R$ ${totalCommissionsPending.toFixed(0)}` }
               ].map((s, i) => (
