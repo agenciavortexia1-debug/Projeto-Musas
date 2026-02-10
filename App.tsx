@@ -1,70 +1,4 @@
 
-/*
--- SQL PARA GERAR AS TABELAS NO SUPABASE (COPIE E COLE NO SQL EDITOR):
-
--- 1. Tabela de Clientes
-CREATE TABLE clients (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  password TEXT NOT NULL,
-  start_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  initial_weight NUMERIC NOT NULL,
-  target_weight NUMERIC NOT NULL,
-  height NUMERIC NOT NULL,
-  active BOOLEAN DEFAULT FALSE,
-  admin_notes TEXT,
-  profile_image TEXT
-);
-
--- 2. Tabela de Pesagens
-CREATE TABLE weight_entries (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
-  date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  weight NUMERIC NOT NULL,
-  waist NUMERIC,
-  mood TEXT CHECK (mood IN ('happy', 'neutral', 'sad')),
-  notes TEXT,
-  photo TEXT -- Base64 ou URL
-);
-
--- 3. Tabela de Produtos
-CREATE TABLE products (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  reward NUMERIC NOT NULL
-);
-
--- 4. Tabela de Indicações
-CREATE TABLE referrals (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  referrer_id UUID REFERENCES clients(id) ON DELETE CASCADE,
-  friend_name TEXT NOT NULL,
-  friend_contact TEXT NOT NULL,
-  product_id UUID REFERENCES products(id),
-  product_name TEXT,
-  reward_value NUMERIC,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'bought', 'not_bought')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  paid_at TIMESTAMP WITH TIME ZONE
-);
-
--- Habilitar RLS (Opcional para anon access, mas bom para o Supabase dashboard)
-ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
-ALTER TABLE weight_entries ENABLE ROW LEVEL SECURITY;
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE referrals ENABLE ROW LEVEL SECURITY;
-
--- Criar políticas de acesso simplificadas (Anon)
-CREATE POLICY "Allow anon read all" ON clients FOR SELECT USING (true);
-CREATE POLICY "Allow anon insert" ON clients FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow anon update" ON clients FOR UPDATE USING (true);
-
-CREATE POLICY "Allow anon all weight" ON weight_entries FOR ALL USING (true);
-CREATE POLICY "Allow anon all products" ON products FOR ALL USING (true);
-CREATE POLICY "Allow anon all referrals" ON referrals FOR ALL USING (true);
-*/
-
 import React, { useState, useEffect } from 'react';
 import { Client, WeightEntry, Referral, Product, ReferralStatus } from './types';
 import ClientDashboard from './components/ClientDashboard';
@@ -87,7 +21,6 @@ const App: React.FC = () => {
   const [accessCode, setAccessCode] = useState('');
   const [adminPass, setAdminPass] = useState('');
 
-  // Carregar dados iniciais
   useEffect(() => {
     fetchData();
   }, []);
@@ -95,17 +28,14 @@ const App: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [
-        { data: clientsData },
-        { data: entriesData },
-        { data: productsData },
-        { data: referralsData }
-      ] = await Promise.all([
-        supabase.from('clients').select('*'),
-        supabase.from('weight_entries').select('*'),
-        supabase.from('products').select('*'),
-        supabase.from('referrals').select('*')
-      ]);
+      const { data: clientsData, error: ce } = await supabase.from('clients').select('*');
+      const { data: entriesData, error: ee } = await supabase.from('weight_entries').select('*');
+      const { data: productsData, error: pe } = await supabase.from('products').select('*');
+      const { data: referralsData, error: re } = await supabase.from('referrals').select('*');
+
+      if (ce || ee || pe || re) {
+        console.error("Supabase Error:", ce || ee || pe || re);
+      }
 
       if (clientsData) setClients(clientsData.map(mapClientFromDB));
       if (entriesData) setEntries(entriesData.map(mapEntryFromDB));
@@ -161,6 +91,11 @@ const App: React.FC = () => {
     const formData = new FormData(e.currentTarget);
     const password = formData.get('password') as string;
 
+    if (!password) {
+      alert("Por favor, informe um código de acesso.");
+      return;
+    }
+
     const { data: existing } = await supabase.from('clients').select('id').eq('password', password).maybeSingle();
     
     if (existing) {
@@ -168,12 +103,15 @@ const App: React.FC = () => {
       return;
     }
 
+    // Função para tratar entrada numérica que pode vir com vírgula
+    const parseNum = (val: string) => parseFloat(val.replace(',', '.'));
+
     const newClientData = {
-      name: formData.get('name') as string,
+      name: (formData.get('name') as string).toUpperCase(),
       password: password,
-      height: parseFloat(formData.get('height') as string),
-      initial_weight: parseFloat(formData.get('initialWeight') as string),
-      target_weight: parseFloat(formData.get('targetWeight') as string),
+      height: parseNum(formData.get('height') as string),
+      initial_weight: parseNum(formData.get('initialWeight') as string),
+      target_weight: parseNum(formData.get('targetWeight') as string),
       active: false,
       admin_notes: "Bem-vinda! Estou ansiosa para acompanhar sua evolução."
     };
@@ -181,7 +119,8 @@ const App: React.FC = () => {
     const { error } = await supabase.from('clients').insert([newClientData]);
     
     if (error) {
-      alert('Erro ao cadastrar. Tente novamente.');
+      console.error(error);
+      alert('Erro ao cadastrar: ' + error.message);
       return;
     }
 
@@ -212,7 +151,6 @@ const App: React.FC = () => {
   const handleToggleClientActive = async (clientId: string) => {
     const client = clients.find(c => c.id === clientId);
     if (!client) return;
-
     await supabase.from('clients').update({ active: !client.active }).eq('id', clientId);
     await fetchData();
   };
@@ -229,7 +167,6 @@ const App: React.FC = () => {
 
   const handleUpdateClientPassword = async (clientId: string, newPassword: string) => {
     const { data: existing } = await supabase.from('clients').select('id').eq('password', newPassword).neq('id', clientId).maybeSingle();
-    
     if (existing) {
       alert('Este código já está em uso por outra cliente!');
       return;
@@ -264,7 +201,6 @@ const App: React.FC = () => {
     if (!currentUser) return;
     const product = products.find(p => p.id === productId);
     if (!product) return;
-
     const newRef = {
       referrer_id: currentUser.id,
       friend_name: friendName,
@@ -310,7 +246,7 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#FFF9F9] flex flex-col items-center justify-center font-inter">
         <div className="w-12 h-12 border-4 border-rose-200 border-t-rose-600 rounded-full animate-spin"></div>
-        <p className="mt-4 text-rose-400 text-xs font-bold uppercase tracking-widest">Carregando Musas...</p>
+        <p className="mt-4 text-rose-400 text-xs font-bold uppercase tracking-widest">Iniciando Sistema...</p>
       </div>
     );
   }
@@ -391,7 +327,7 @@ const App: React.FC = () => {
         {view === 'login-client' && (
           <form onSubmit={handleClientLogin} className="w-full space-y-8 animate-in fade-in zoom-in-95 duration-300">
             <div className="space-y-4">
-              <input type="password" autoFocus required value={accessCode} onChange={(e) => setAccessCode(e.target.value)} className="w-full text-center text-4xl sm:text-5xl font-light tracking-[0.5em] py-6 bg-rose-50/20 border-b-2 border-rose-100 focus:border-rose-500 focus:bg-white outline-none transition-all placeholder:text-neutral-100" placeholder="••••" />
+              <input type="password" autoFocus required value={accessCode} onChange={(e) => setAccessCode(e.target.value)} className="w-full text-center text-4xl sm:text-5xl font-bold tracking-[0.5em] py-6 bg-rose-50/20 border-b-2 border-rose-100 focus:border-rose-500 focus:bg-white outline-none transition-all placeholder:text-neutral-200" placeholder="••••" />
               <p className="text-[10px] text-rose-400 uppercase tracking-widest font-bold">Código Pessoal</p>
             </div>
             <button type="submit" className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl shadow-lg hover:bg-rose-700 transition-all uppercase tracking-widest text-xs">Entrar</button>
@@ -403,7 +339,7 @@ const App: React.FC = () => {
           <form onSubmit={handleAdminLogin} className="w-full space-y-8 animate-in fade-in zoom-in-95 duration-300">
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-rose-400 uppercase tracking-widest">Senha Mestre</label>
-              <input type="password" autoFocus required value={adminPass} onChange={(e) => setAdminPass(e.target.value)} className="w-full text-center text-xl font-light px-4 py-4 bg-rose-50/20 border border-rose-100 rounded-xl focus:border-rose-500 outline-none transition-all" />
+              <input type="password" autoFocus required value={adminPass} onChange={(e) => setAdminPass(e.target.value)} className="w-full text-center text-xl font-bold px-4 py-4 bg-rose-50/20 border border-rose-100 rounded-xl focus:border-rose-500 outline-none transition-all text-neutral-800" />
             </div>
             <button type="submit" className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl shadow-lg hover:bg-rose-700 transition-all uppercase tracking-widest text-xs">Entrar Admin</button>
             <button type="button" onClick={() => setView('landing')} className="text-rose-300 text-[9px] uppercase font-bold tracking-widest">Voltar</button>
@@ -413,16 +349,16 @@ const App: React.FC = () => {
         {view === 'register' && (
           <form onSubmit={handleRegister} className="w-full space-y-4 animate-in fade-in slide-in-from-top-4 duration-300 text-left">
             <div className="space-y-3">
-              <input name="name" required placeholder="NOME COMPLETO" className="w-full px-5 py-4 bg-rose-50/20 border border-rose-100 rounded-xl outline-none focus:ring-1 focus:ring-rose-500 text-xs tracking-widest font-medium" />
+              <input name="name" required placeholder="NOME COMPLETO" className="w-full px-5 py-4 bg-rose-50/30 border border-rose-100 rounded-xl outline-none focus:ring-1 focus:ring-rose-500 text-xs tracking-widest font-bold text-neutral-800 placeholder:text-neutral-400 placeholder:font-normal" />
               <div className="grid grid-cols-2 gap-3">
-                <input name="height" type="number" required placeholder="ALTURA (CM)" className="w-full px-5 py-4 bg-rose-50/20 border border-rose-100 rounded-xl outline-none focus:ring-1 focus:ring-rose-500 text-xs tracking-widest font-medium" />
-                <input name="initialWeight" type="number" step="0.1" required placeholder="PESO (KG)" className="w-full px-5 py-4 bg-rose-50/20 border border-rose-100 rounded-xl outline-none focus:ring-1 focus:ring-rose-500 text-xs tracking-widest font-medium" />
+                <input name="height" type="text" required placeholder="ALTURA (CM)" className="w-full px-5 py-4 bg-rose-50/30 border border-rose-100 rounded-xl outline-none focus:ring-1 focus:ring-rose-500 text-xs tracking-widest font-bold text-neutral-800 placeholder:text-neutral-400 placeholder:font-normal" />
+                <input name="initialWeight" type="text" required placeholder="PESO (KG)" className="w-full px-5 py-4 bg-rose-50/30 border border-rose-100 rounded-xl outline-none focus:ring-1 focus:ring-rose-500 text-xs tracking-widest font-bold text-neutral-800 placeholder:text-neutral-400 placeholder:font-normal" />
               </div>
-              <input name="targetWeight" type="number" step="0.1" required placeholder="META DE PESO (KG)" className="w-full px-5 py-4 bg-rose-50/20 border border-rose-100 rounded-xl outline-none focus:ring-1 focus:ring-rose-500 text-xs tracking-widest font-medium" />
+              <input name="targetWeight" type="text" required placeholder="META DE PESO (KG)" className="w-full px-5 py-4 bg-rose-50/30 border border-rose-100 rounded-xl outline-none focus:ring-1 focus:ring-rose-500 text-xs tracking-widest font-bold text-neutral-800 placeholder:text-neutral-400 placeholder:font-normal" />
               <div className="pt-4 space-y-3">
                 <div className="w-full h-px bg-rose-50"></div>
-                <label className="text-[9px] font-bold text-rose-300 uppercase tracking-[0.2em] block text-center">Crie seu código de acesso</label>
-                <input name="password" type="password" required placeholder="EX: 1234" className="w-full px-5 py-4 bg-rose-100 border border-rose-200 rounded-xl outline-none focus:ring-1 focus:ring-rose-500 text-sm font-bold text-rose-800 text-center tracking-[0.5em]" />
+                <label className="text-[9px] font-bold text-rose-400 uppercase tracking-[0.2em] block text-center">Crie seu código de acesso</label>
+                <input name="password" type="password" required placeholder="EX: 1234" className="w-full px-5 py-4 bg-rose-100 border border-rose-200 rounded-xl outline-none focus:ring-1 focus:ring-rose-500 text-sm font-bold text-rose-800 text-center tracking-[0.5em] placeholder:text-rose-200 placeholder:font-normal" />
               </div>
             </div>
             <button type="submit" className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl shadow-lg hover:bg-rose-700 transition-all uppercase tracking-widest text-xs">Solicitar Cadastro</button>
