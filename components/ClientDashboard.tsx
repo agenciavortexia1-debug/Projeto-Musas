@@ -275,7 +275,16 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
                       <div className="overflow-hidden"><p className="text-[10px] font-black uppercase truncate">{ref.friendName}</p><p className="text-[8px] font-bold text-rose-400">{ref.productName}</p></div>
                       <div className="text-right">
                          <p className="text-[10px] font-black text-rose-600">R$ {ref.rewardValue.toFixed(0)}</p>
-                         <span className={`text-[7px] font-black px-2 py-0.5 rounded uppercase ${ref.paidAt ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-400'}`}>{ref.paidAt ? 'Pago' : ref.status === 'bought' ? 'A Receber' : 'Em análise'}</span>
+                         <span className={`text-[7px] font-black px-2 py-0.5 rounded uppercase ${
+                           ref.paidAt ? 'bg-emerald-50 text-emerald-600' : 
+                           ref.status === 'not_bought' ? 'bg-neutral-100 text-neutral-400' : 
+                           'bg-rose-50 text-rose-400'
+                         }`}>
+                           {ref.paidAt ? 'Pago' : 
+                            ref.status === 'bought' ? 'A Receber' : 
+                            ref.status === 'not_bought' ? 'Indicação Rejeitada' : 
+                            'Em análise'}
+                         </span>
                       </div>
                    </div>
                 ))}
