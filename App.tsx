@@ -5,7 +5,7 @@ import ClientDashboard from './components/ClientDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import { supabase } from './lib/supabase';
 
-const ADMIN_PASSWORD = 'admin'; 
+const MASTER_ADMIN_PASSWORD = 'rose1213*A'; 
 
 const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -17,10 +17,9 @@ const App: React.FC = () => {
   
   const [currentUser, setCurrentUser] = useState<Client | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [view, setView] = useState<'landing' | 'login-client' | 'register' | 'admin-login' | 'pending-notice'>('landing');
+  const [view, setView] = useState<'landing' | 'login-client' | 'register' | 'pending-notice'>('landing');
   
   const [accessCode, setAccessCode] = useState('');
-  const [adminPass, setAdminPass] = useState('');
 
   const mapClientFromDB = (c: any): Client => ({
     id: c.id,
@@ -88,14 +87,11 @@ const App: React.FC = () => {
     fetchData();
   }, []);
 
-  // --- Ações com Update Otimista (Instantâneo) ---
-
   const handleAddEntry = async (data: Omit<WeightEntry, 'id' | 'clientId'>) => {
     if (!currentUser) return;
     const tempId = crypto.randomUUID();
     const newEntry: WeightEntry = { ...data, id: tempId, clientId: currentUser.id };
     
-    // Update Otimista
     setEntries(prev => [...prev, newEntry]);
 
     try {
@@ -165,7 +161,7 @@ const App: React.FC = () => {
     const tempId = crypto.randomUUID();
     setProducts(prev => [...prev, { id: tempId, name, reward }]);
     await supabase.from('products').insert([{ name, reward }]);
-    fetchData(); // Produtos precisam de ID real para relacionamentos
+    fetchData(); 
   };
 
   const handleDeleteProduct = async (id: string) => {
@@ -175,18 +171,19 @@ const App: React.FC = () => {
 
   const handleClientLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const client = clients.find(c => c.password === accessCode.trim());
+    const code = accessCode.trim();
+
+    // Admin Master Access Check
+    if (code === MASTER_ADMIN_PASSWORD) {
+      setIsAdmin(true);
+      setCurrentUser(null);
+      return;
+    }
+
+    const client = clients.find(c => c.password === code);
     if (!client) { alert('Código incorreto.'); return; }
     if (!client.active) { setView('pending-notice'); return; }
     setCurrentUser(client);
-  };
-
-  const handleAdminLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (adminPass === ADMIN_PASSWORD) {
-      setIsAdmin(true);
-      setCurrentUser(null);
-    } else { alert('Senha inválida.'); }
   };
 
   const handleLogout = () => {
@@ -194,7 +191,6 @@ const App: React.FC = () => {
     setIsAdmin(false);
     setView('landing');
     setAccessCode('');
-    setAdminPass('');
   };
 
   if (loading) {
@@ -266,7 +262,6 @@ const App: React.FC = () => {
           <div className="w-full space-y-3">
             <button onClick={() => setView('login-client')} className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl hover:bg-rose-700 transition-all uppercase tracking-widest text-xs">Acessar Diário</button>
             <button onClick={() => setView('register')} className="w-full bg-white text-rose-600 font-bold py-4 rounded-xl border border-rose-100 hover:border-rose-300 transition-all uppercase tracking-widest text-[10px]">Novo Cadastro</button>
-            <button onClick={() => setView('admin-login')} className="w-full text-rose-300 text-[8px] font-bold uppercase tracking-widest mt-10">Admin</button>
           </div>
         )}
 
@@ -281,16 +276,11 @@ const App: React.FC = () => {
 
         {view === 'login-client' && (
           <form onSubmit={handleClientLogin} className="w-full space-y-6">
-            <input type="password" required value={accessCode} onChange={(e) => setAccessCode(e.target.value)} className="w-full text-center text-4xl font-bold tracking-[0.5em] py-4 bg-rose-50 border-b-2 border-rose-200 outline-none focus:border-rose-500 transition-all" placeholder="••••" />
-            <button type="submit" className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl uppercase text-xs">Entrar</button>
-            <button type="button" onClick={() => setView('landing')} className="text-rose-300 text-[10px] uppercase font-bold">Voltar</button>
-          </form>
-        )}
-
-        {view === 'admin-login' && (
-          <form onSubmit={handleAdminLogin} className="w-full space-y-4">
-            <input type="password" required value={adminPass} onChange={(e) => setAdminPass(e.target.value)} className="w-full px-4 py-4 bg-rose-50 border rounded-xl outline-none" placeholder="Senha Admin" />
-            <button type="submit" className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl uppercase text-xs">Entrar</button>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-rose-400 uppercase tracking-widest">Código de Acesso</label>
+              <input type="password" required value={accessCode} onChange={(e) => setAccessCode(e.target.value)} className="w-full text-center text-3xl font-bold tracking-[0.3em] py-4 bg-rose-50 border-b-2 border-rose-200 outline-none focus:border-rose-500 transition-all" placeholder="••••" />
+            </div>
+            <button type="submit" className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl uppercase text-xs shadow-lg shadow-rose-100">Entrar</button>
             <button type="button" onClick={() => setView('landing')} className="text-rose-300 text-[10px] uppercase font-bold">Voltar</button>
           </form>
         )}
@@ -332,8 +322,8 @@ const App: React.FC = () => {
               </div>
               <input name="targetWeight" required placeholder="META DE PESO (KG)" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold" />
               <div className="pt-4 border-t border-rose-50 space-y-2 text-center">
-                <label className="text-[9px] font-bold text-rose-400 uppercase">Código de acesso</label>
-                <input name="password" type="password" required maxLength={4} placeholder="••••" className="w-full px-5 py-4 bg-rose-100 border border-rose-200 rounded-xl text-center text-sm font-bold tracking-[0.5em] outline-none" />
+                <label className="text-[9px] font-bold text-rose-400 uppercase">Defina seu código de acesso</label>
+                <input name="password" type="password" required maxLength={12} placeholder="••••" className="w-full px-5 py-4 bg-rose-100 border border-rose-200 rounded-xl text-center text-sm font-bold tracking-[0.5em] outline-none" />
               </div>
             </div>
             <button type="submit" disabled={isSubmitting} className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl shadow-lg transition-all uppercase tracking-widest text-xs flex items-center justify-center">
