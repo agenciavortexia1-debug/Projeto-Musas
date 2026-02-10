@@ -24,7 +24,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   clients, entries, referrals, products, onLogout, onToggleClientActive, onUpdateAdminNotes, onUpdateClientPassword, onDeleteClient, onUpdateReferralStatus, onPayCommission, onAddProduct, onDeleteProduct
 }) => {
   const [activeMenu, setActiveMenu] = useState<'acompanhamento' | 'habilitacao' | 'clientes' | 'indicacoes' | 'ranking' | 'produtos'>('acompanhamento');
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [tempNotes, setTempNotes] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
@@ -55,10 +55,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     ? activeClients.reduce((acc, c) => acc + getClientStats(c).weeklyLoss, 0) / activeClients.length 
     : 0;
 
-  const totalCommissionsPaid = referrals
-    .filter(r => r.status === 'bought' && r.paidAt)
-    .reduce((acc, r) => acc + r.rewardValue, 0);
-
   const totalCommissionsPending = referrals
     .filter(r => r.status === 'bought' && !r.paidAt)
     .reduce((acc, r) => acc + r.rewardValue, 0);
@@ -66,7 +62,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleSelectClient = (client: Client) => {
     setSelectedClientId(client.id);
     setTempNotes(client.adminNotes || '');
-    if (window.innerWidth < 1024) setSidebarOpen(false);
+    if (window.innerWidth < 1024) {
+        // No mobile, se clicar em alguém, podemos fechar se estiver em modo drawer, 
+        // mas aqui mantemos a lógica de desktop separada.
+    }
   };
 
   const handleSaveNotes = () => {
@@ -100,26 +99,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {isSidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)}></div>
-      )}
-
-      <aside className={`bg-white border-r border-rose-100 flex flex-col transition-all duration-300 ease-in-out fixed lg:sticky top-0 h-screen z-50 w-72 
-        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`bg-white border-r border-rose-100 flex flex-col transition-all duration-300 ease-in-out fixed top-0 h-screen z-50 
+        ${isSidebarOpen ? 'w-72' : 'w-20'}`}>
         <div className="p-8 border-b border-rose-50 flex items-center justify-between">
-          <div>
-            <h1 className="text-sm font-bold text-neutral-800 tracking-tighter italic">Painel <span className="text-rose-600 not-italic">ADM</span></h1>
-            <p className="text-[8px] text-rose-300 uppercase tracking-widest font-black">@rosimar_emagrecedores</p>
-          </div>
-          <button onClick={() => setSidebarOpen(false)} className="p-2 lg:hidden"><svg className="w-6 h-6 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+          {isSidebarOpen ? (
+            <div className="animate-in fade-in duration-300">
+              <h1 className="text-sm font-bold text-neutral-800 tracking-tighter italic">Painel <span className="text-rose-600 not-italic">ADM</span></h1>
+              <p className="text-[8px] text-rose-300 uppercase tracking-widest font-black">@rosimar_emagrecedores</p>
+            </div>
+          ) : (
+            <div className="w-full flex justify-center"><span className="text-rose-600 font-black italic text-xs">R</span></div>
+          )}
+          <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 text-rose-400 hover:bg-rose-50 rounded-lg transition-all">
+            <svg className={`w-5 h-5 transition-transform ${isSidebarOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg>
+          </button>
         </div>
 
         <nav className="flex-1 p-4 space-y-2 mt-4 overflow-y-auto custom-scrollbar">
           {menuItems.map((item) => (
-            <button key={item.id} onClick={() => { setActiveMenu(item.id as any); setSidebarOpen(false); }} className={`w-full flex items-center space-x-3 px-4 py-3.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all relative ${activeMenu === item.id ? 'bg-rose-600 text-white shadow-lg' : 'text-neutral-400 hover:text-neutral-600'}`}>
+            <button key={item.id} onClick={() => { setActiveMenu(item.id as any); }} className={`w-full flex items-center space-x-3 px-4 py-3.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all relative ${activeMenu === item.id ? 'bg-rose-600 text-white shadow-lg' : 'text-neutral-400 hover:text-neutral-600'}`}>
               <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">{item.icon}</svg>
-              <span>{item.label}</span>
-              {item.badge ? <span className="absolute right-3 bg-amber-400 text-white text-[8px] px-1.5 py-0.5 rounded-full font-black">{item.badge}</span> : null}
+              {isSidebarOpen && <span>{item.label}</span>}
+              {isSidebarOpen && item.badge ? <span className="absolute right-3 bg-amber-400 text-white text-[8px] px-1.5 py-0.5 rounded-full font-black">{item.badge}</span> : null}
             </button>
           ))}
         </nav>
@@ -127,20 +128,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="p-4 border-t border-rose-50">
           <button onClick={onLogout} className="w-full flex items-center space-x-3 px-4 py-3 text-[10px] font-bold text-neutral-300 hover:text-rose-600 uppercase tracking-widest transition-colors">
             <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7" /></svg>
-            <span>Sair</span>
+            {isSidebarOpen && <span>Sair</span>}
           </button>
         </div>
       </aside>
 
-      <main className="flex-1 p-4 sm:p-8 lg:p-12 overflow-y-auto w-full">
+      <main className={`flex-1 p-4 sm:p-8 lg:p-12 overflow-y-auto w-full transition-all duration-300 ${isSidebarOpen ? 'ml-72' : 'ml-20'}`}>
         <header className="flex justify-between items-center mb-8">
           <div>
             <h2 className="text-2xl sm:text-3xl font-light text-neutral-800 tracking-tight">Painel de <span className="font-semibold text-rose-600">Gestão</span></h2>
             <p className="text-rose-300 text-[10px] uppercase tracking-widest font-bold mt-1">Olá, Rosimar</p>
           </div>
-          <button onClick={() => setSidebarOpen(true)} className="p-2 lg:hidden bg-white border border-rose-100 rounded-lg text-rose-500 shadow-sm">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
-          </button>
         </header>
 
         {activeMenu === 'acompanhamento' && (
@@ -166,13 +164,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   {activeClients.map(client => { 
                     const stats = getClientStats(client); 
                     return (
-                      <button key={client.id} onClick={() => handleSelectClient(client)} className={`w-full text-left p-4 rounded-xl border transition-all ${selectedClientId === client.id ? 'border-rose-500 bg-rose-50' : 'border-rose-50 bg-white hover:border-rose-100 shadow-sm'}`}>
+                      <button key={client.id} onClick={() => handleSelectClient(client)} className={`w-full text-left p-4 rounded-xl border transition-all ${selectedClientId === client.id ? 'border-rose-500 bg-rose-50 shadow-md ring-1 ring-rose-200' : 'border-rose-50 bg-white hover:border-rose-100 shadow-sm'}`}>
                         <div className="flex justify-between items-baseline mb-2">
                           <span className="font-bold text-neutral-800 text-[11px] uppercase truncate max-w-[120px]">{client.name}</span>
                           <span className="text-[10px] font-black text-rose-600">-{stats.totalLost.toFixed(1)}kg</span>
                         </div>
                         <div className="w-full bg-neutral-100 h-1 rounded-full overflow-hidden">
-                          <div className="bg-rose-500 h-full" style={{ width: `${stats.progressPercent}%` }} />
+                          <div className="bg-rose-500 h-full transition-all duration-1000" style={{ width: `${stats.progressPercent}%` }} />
                         </div>
                       </button>
                     ); 
@@ -197,7 +195,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <div className="space-y-4 bg-rose-50/20 p-8 rounded-xl border border-rose-100">
                       <h4 className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">Acompanhamento Consultora</h4>
                       <textarea value={tempNotes} onChange={(e) => setTempNotes(e.target.value)} className="w-full h-32 bg-white border border-rose-100 rounded-lg p-4 text-sm font-light outline-none focus:ring-1 focus:ring-rose-300 resize-none" placeholder="Escreva suas orientações aqui..." />
-                      <button onClick={handleSaveNotes} className="w-full bg-rose-600 text-white text-xs font-bold py-4 rounded-lg hover:bg-rose-700 uppercase tracking-widest transition-all">Enviar Orientação</button>
+                      <button onClick={handleSaveNotes} className="w-full bg-rose-600 text-white text-xs font-bold py-4 rounded-lg hover:bg-rose-700 uppercase tracking-widest transition-all shadow-lg">Enviar Orientação</button>
                     </div>
                   </div>
                 ) : (
@@ -303,9 +301,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <td className="px-8 py-6">
                                <div className="flex flex-col space-y-2">
                                   <div className="flex space-x-1">
-                                    <button onClick={() => onUpdateReferralStatus(ref.id, 'bought')} className={`px-3 py-1 text-[8px] font-black uppercase rounded ${ref.status === 'bought' ? 'bg-emerald-500 text-white' : 'bg-neutral-100 text-neutral-400'}`}>Vendeu</button>
-                                    <button onClick={() => onUpdateReferralStatus(ref.id, 'not_bought')} className={`px-3 py-1 text-[8px] font-black uppercase rounded ${ref.status === 'not_bought' ? 'bg-rose-200 text-white' : 'bg-neutral-100 text-neutral-400'}`}>Não</button>
-                                    <button onClick={() => onUpdateReferralStatus(ref.id, 'pending')} className={`px-3 py-1 text-[8px] font-black uppercase rounded ${ref.status === 'pending' ? 'bg-amber-400 text-white' : 'bg-neutral-100 text-neutral-400'}`}>...</button>
+                                    <button onClick={() => onUpdateReferralStatus(ref.id, 'bought')} className={`px-3 py-1 text-[8px] font-black uppercase rounded transition-colors ${ref.status === 'bought' ? 'bg-emerald-500 text-white' : 'bg-neutral-100 text-neutral-400'}`}>Vendeu</button>
+                                    <button onClick={() => onUpdateReferralStatus(ref.id, 'not_bought')} className={`px-3 py-1 text-[8px] font-black uppercase rounded transition-colors ${ref.status === 'not_bought' ? 'bg-rose-200 text-white' : 'bg-neutral-100 text-neutral-400'}`}>Não</button>
+                                    <button onClick={() => onUpdateReferralStatus(ref.id, 'pending')} className={`px-3 py-1 text-[8px] font-black uppercase rounded transition-colors ${ref.status === 'pending' ? 'bg-amber-400 text-white' : 'bg-neutral-100 text-neutral-400'}`}>...</button>
                                   </div>
                                </div>
                             </td>
@@ -371,9 +369,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                      </div>
                   </div>
                 ))}
-                {products.length === 0 && (
-                  <div className="col-span-full py-12 text-center text-rose-200 italic text-[10px] font-bold uppercase tracking-widest">Nenhum produto cadastrado</div>
-                )}
              </section>
           </div>
         )}
