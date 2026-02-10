@@ -260,7 +260,124 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         )}
 
-        {/* Demais menus mantidos com lógica anterior adaptada */}
+        {activeMenu === 'indicacoes' && (
+          <div className="animate-in fade-in duration-500 space-y-8 max-w-6xl mx-auto pb-20">
+             <header className="flex justify-between items-end">
+                <div>
+                   <h2 className="text-3xl font-light text-neutral-800 tracking-tight">Gestão de <span className="font-bold text-rose-600">Indicações</span></h2>
+                   <p className="text-rose-300 text-xs uppercase tracking-widest font-bold mt-1">Controle de vendas e pagamentos de bônus</p>
+                </div>
+                <div className="bg-white p-4 rounded-2xl border border-rose-100 text-right">
+                   <p className="text-[9px] text-rose-300 font-bold uppercase tracking-widest">Total Pendente de Pagamento</p>
+                   <p className="text-xl font-black text-rose-600">R$ {totalCommissionsPending.toFixed(2)}</p>
+                </div>
+             </header>
+
+             <div className="bg-white rounded-3xl shadow-sm border border-rose-100 overflow-hidden">
+                <table className="w-full text-left">
+                   <thead className="bg-rose-50 text-rose-600 text-[10px] font-bold uppercase tracking-widest">
+                      <tr>
+                        <th className="px-8 py-5">Quem Indicou</th>
+                        <th className="px-8 py-5">Amiga Indicada</th>
+                        <th className="px-8 py-5">Produto / Bônus</th>
+                        <th className="px-8 py-5">Status da Venda</th>
+                        <th className="px-8 py-5 text-right">Comissão</th>
+                      </tr>
+                   </thead>
+                   <tbody className="divide-y divide-rose-50">
+                      {referrals.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(ref => {
+                         const referrer = clients.find(c => c.id === ref.referrerId);
+                         return (
+                          <tr key={ref.id} className="hover:bg-rose-50/20 transition-colors">
+                            <td className="px-8 py-6">
+                               <p className="text-xs font-bold text-neutral-800 uppercase">{referrer?.name || 'Cliente Excluída'}</p>
+                            </td>
+                            <td className="px-8 py-6">
+                               <p className="text-xs font-medium text-neutral-600">{ref.friendName}</p>
+                               <p className="text-[9px] text-neutral-400 font-mono mt-0.5">{ref.friendContact}</p>
+                            </td>
+                            <td className="px-8 py-6">
+                               <p className="text-xs font-bold text-rose-500 uppercase">{ref.productName}</p>
+                               <p className="text-[9px] text-neutral-400 uppercase tracking-widest">Valor: R$ {ref.rewardValue.toFixed(2)}</p>
+                            </td>
+                            <td className="px-8 py-6">
+                               <div className="flex flex-col space-y-2">
+                                  <div className="flex space-x-1">
+                                    <button onClick={() => onUpdateReferralStatus(ref.id, 'bought')} className={`px-3 py-1 text-[8px] font-black uppercase rounded ${ref.status === 'bought' ? 'bg-emerald-500 text-white' : 'bg-neutral-100 text-neutral-400'}`}>Vendeu</button>
+                                    <button onClick={() => onUpdateReferralStatus(ref.id, 'not_bought')} className={`px-3 py-1 text-[8px] font-black uppercase rounded ${ref.status === 'not_bought' ? 'bg-rose-200 text-white' : 'bg-neutral-100 text-neutral-400'}`}>Não</button>
+                                    <button onClick={() => onUpdateReferralStatus(ref.id, 'pending')} className={`px-3 py-1 text-[8px] font-black uppercase rounded ${ref.status === 'pending' ? 'bg-amber-400 text-white' : 'bg-neutral-100 text-neutral-400'}`}>...</button>
+                                  </div>
+                               </div>
+                            </td>
+                            <td className="px-8 py-6 text-right">
+                               {ref.status === 'bought' ? (
+                                  ref.paidAt ? (
+                                     <span className="inline-block bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[8px] font-black uppercase border border-emerald-100">Pago ✓</span>
+                                  ) : (
+                                     <button onClick={() => onPayCommission(ref.id)} className="bg-emerald-600 text-white text-[9px] font-bold px-4 py-2 rounded-lg hover:bg-emerald-700 transition-all uppercase shadow-md">Pagar Agora</button>
+                                  )
+                               ) : (
+                                  <span className="text-[9px] text-neutral-300 font-bold uppercase tracking-widest">Indisponível</span>
+                               )}
+                            </td>
+                          </tr>
+                         );
+                      })}
+                      {referrals.length === 0 && (
+                        <tr><td colSpan={5} className="py-20 text-center text-rose-200 italic text-[10px] font-bold uppercase tracking-widest">Nenhuma indicação cadastrada</td></tr>
+                      )}
+                   </tbody>
+                </table>
+             </div>
+          </div>
+        )}
+
+        {activeMenu === 'produtos' && (
+          <div className="animate-in fade-in duration-500 space-y-12 max-w-4xl mx-auto pb-20">
+             <header>
+                <h2 className="text-3xl font-light text-neutral-800 tracking-tight">Gestão de <span className="font-bold text-rose-600">Produtos</span></h2>
+                <p className="text-rose-300 text-xs uppercase tracking-widest font-bold mt-1">Adicione produtos e defina o bônus por indicação</p>
+             </header>
+
+             <section className="bg-white p-8 rounded-3xl shadow-sm border border-rose-100">
+                <h3 className="text-[10px] font-bold text-neutral-800 uppercase tracking-widest mb-6">Cadastrar Novo Produto</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                   <div className="md:col-span-1 space-y-2">
+                      <label className="text-[9px] font-bold text-rose-400 uppercase">Nome do Produto</label>
+                      <input value={newProdName} onChange={(e) => setNewProdName(e.target.value)} placeholder="EX: MUSAS PLUS" className="w-full px-4 py-3 bg-rose-50/50 border border-rose-100 rounded-xl outline-none text-xs font-bold" />
+                   </div>
+                   <div className="md:col-span-1 space-y-2">
+                      <label className="text-[9px] font-bold text-rose-400 uppercase">Valor do Bônus (R$)</label>
+                      <input type="number" value={newProdReward} onChange={(e) => setNewProdReward(e.target.value)} placeholder="0.00" className="w-full px-4 py-3 bg-rose-50/50 border border-rose-100 rounded-xl outline-none text-xs font-bold" />
+                   </div>
+                   <button onClick={() => { if(newProdName && newProdReward){ onAddProduct(newProdName, parseFloat(newProdReward)); setNewProdName(''); setNewProdReward(''); } }} className="bg-rose-600 text-white font-bold py-3.5 rounded-xl hover:bg-rose-700 transition-all uppercase tracking-widest text-[10px] shadow-lg">Adicionar Produto</button>
+                </div>
+             </section>
+
+             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {products.map(prod => (
+                  <div key={prod.id} className="bg-white p-6 rounded-2xl border border-rose-100 shadow-sm flex flex-col justify-between hover:border-rose-300 transition-all group">
+                     <div>
+                        <div className="flex justify-between items-start">
+                           <p className="text-xs font-black text-neutral-800 uppercase tracking-tighter">{prod.name}</p>
+                           <button onClick={() => onDeleteProduct(prod.id)} className="text-rose-200 hover:text-rose-600 transition-colors">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7" /></svg>
+                           </button>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-rose-50">
+                           <p className="text-[9px] text-rose-300 font-bold uppercase tracking-widest">Bônus por Venda</p>
+                           <p className="text-xl font-black text-rose-600">R$ {prod.reward.toFixed(2)}</p>
+                        </div>
+                     </div>
+                  </div>
+                ))}
+                {products.length === 0 && (
+                  <div className="col-span-full py-12 text-center text-rose-200 italic text-[10px] font-bold uppercase tracking-widest">Nenhum produto cadastrado</div>
+                )}
+             </section>
+          </div>
+        )}
+
         {activeMenu === 'habilitacao' && (
           <div className="animate-in fade-in slide-in-from-right-4 duration-500 max-w-4xl mx-auto">
             <h2 className="text-3xl font-light text-neutral-800 mb-10">Solicitações de <span className="font-bold text-rose-600">Acesso</span></h2>
