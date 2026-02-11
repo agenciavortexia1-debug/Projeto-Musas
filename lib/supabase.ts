@@ -1,15 +1,19 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// ATENÇÃO: Dados do novo projeto Supabase fornecido pelo usuário
-export const supabaseUrl = 'https://fzxydpzottoanygtshpe.supabase.co';
-export const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6eHlkcHpvdHRvYW55Z3RzaHBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MjgxMTAsImV4cCI6MjA4NjQwNDExMH0.wG7zh9wOQ7TRJmge6OE0_lzMyC0Ri876rdK2pM7Xcbw';
+// Removendo qualquer possível espaço em branco das chaves
+export const supabaseUrl = 'https://fzxydpzottoanygtshpe.supabase.co'.trim();
+export const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6eHlkcHpvdHRvYW55Z3RzaHBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MjgxMTAsImV4cCI6MjA4NjQwNDExMH0.wG7zh9wOQ7TRJmge6OE0_lzMyC0Ri876rdK2pM7Xcbw'.trim();
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  }
+});
 
 /**
  * Upload de imagem para o Supabase Storage.
- * Retorna a URL pública. Isso evita salvar arquivos pesados no banco de dados.
  */
 export async function uploadImage(bucket: string, path: string, base64Data: string): Promise<string> {
   try {
@@ -22,7 +26,6 @@ export async function uploadImage(bucket: string, path: string, base64Data: stri
     const byteArray = new Uint8Array(byteNumbers);
     const blob = new Blob([byteArray], { type: 'image/jpeg' });
 
-    // Upload do arquivo
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(path, blob, {
@@ -32,7 +35,6 @@ export async function uploadImage(bucket: string, path: string, base64Data: stri
 
     if (error) throw error;
 
-    // Gera URL pública
     const { data: { publicUrl } } = supabase.storage
       .from(bucket)
       .getPublicUrl(data.path);

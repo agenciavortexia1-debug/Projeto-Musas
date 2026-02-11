@@ -310,11 +310,17 @@ const App: React.FC = () => {
             const password = formData.get('password') as string;
             
             try {
-              const { data: existing, error: checkError } = await supabase.from('clients').select('id').eq('password', password).maybeSingle();
+              // Testando conexão básica primeiro
+              const { data: existing, error: checkError } = await supabase
+                .from('clients')
+                .select('id')
+                .eq('password', password)
+                .maybeSingle();
+
               if (checkError) throw checkError;
               
               if (existing) {
-                alert('Este código já está em uso.');
+                alert('Este código já está em uso por outra Musa.');
                 setIsSubmitting(false);
                 return;
               }
@@ -332,8 +338,12 @@ const App: React.FC = () => {
               if (insertError) throw insertError;
               setView('pending-notice');
             } catch (err: any) {
-              alert("Erro no cadastro: " + (err.message || "Verifique se executou o SQL no painel do Supabase."));
-              console.error(err);
+              if (err.message === 'Failed to fetch') {
+                alert("Erro de Conexão: O seu navegador ou rede está bloqueando o banco de dados. Tente desativar o AdBlock ou usar uma aba anônima.");
+              } else {
+                alert("Erro no cadastro: " + err.message);
+              }
+              console.error("Cadastro falhou:", err);
             } finally {
               setIsSubmitting(false);
             }
