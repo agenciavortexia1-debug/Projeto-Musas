@@ -326,7 +326,7 @@ const App: React.FC = () => {
                 initial_weight: parseFloat((formData.get('initialWeight') as string).replace(',','.')),
                 target_weight: parseFloat((formData.get('targetWeight') as string).replace(',','.')),
                 active: false,
-                admin_notes: "Olá Musa! Seu acesso será liberado em breve."
+                admin_notes: "Bem-vinda à sua nova versão, Musa! ✨ Estou muito feliz em acompanhar sua evolução. Lembre-se: cada pequeno passo te deixa mais próxima do seu grande objetivo. Vamos juntas!"
               }]);
               
               if (insertError) throw insertError;
