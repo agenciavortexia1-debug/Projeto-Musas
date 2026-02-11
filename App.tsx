@@ -5,6 +5,7 @@ import ClientDashboard from './components/ClientDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import { supabase } from './lib/supabase';
 
+// ESTA É A SUA SENHA MESTRE
 const MASTER_ADMIN_PASSWORD = 'rose1213*A'; 
 
 const App: React.FC = () => {
@@ -136,9 +137,11 @@ const App: React.FC = () => {
   };
 
   const handleToggleClientActive = async (id: string) => {
-    setClients(prev => prev.map(c => c.id === id ? { ...c, active: !c.active } : c));
     const target = clients.find(c => c.id === id);
-    await supabase.from('clients').update({ active: !target?.active }).eq('id', id);
+    if (!target) return;
+    const newStatus = !target.active;
+    setClients(prev => prev.map(c => c.id === id ? { ...c, active: newStatus } : c));
+    await supabase.from('clients').update({ active: newStatus }).eq('id', id);
   };
 
   const handleUpdateAdminNotes = async (id: string, notes: string) => {
@@ -173,7 +176,7 @@ const App: React.FC = () => {
     e.preventDefault();
     const code = accessCode.trim();
 
-    // Admin Master Access Check
+    // Verificação de Acesso Admin Master
     if (code === MASTER_ADMIN_PASSWORD) {
       setIsAdmin(true);
       setCurrentUser(null);
@@ -181,9 +184,18 @@ const App: React.FC = () => {
     }
 
     const client = clients.find(c => c.password === code);
-    if (!client) { alert('Código incorreto.'); return; }
-    if (!client.active) { setView('pending-notice'); return; }
+    if (!client) { 
+      alert('Código de acesso não encontrado. Verifique se digitou corretamente.'); 
+      return; 
+    }
+    
+    if (!client.active) { 
+      setView('pending-notice'); 
+      return; 
+    }
+    
     setCurrentUser(client);
+    setIsAdmin(false);
   };
 
   const handleLogout = () => {
@@ -197,7 +209,37 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#FFF9F9] flex flex-col items-center justify-center">
         <div className="w-10 h-10 border-4 border-rose-200 border-t-rose-600 rounded-full animate-spin"></div>
+        <p className="mt-4 text-[10px] font-black uppercase text-rose-400 tracking-widest">Carregando Musas...</p>
       </div>
+    );
+  }
+
+  // Prioridade de renderização: se for admin, mostra painel admin
+  if (isAdmin) {
+    return (
+      <AdminDashboard 
+        clients={clients} 
+        entries={entries} 
+        referrals={referrals}
+        products={products}
+        onLogout={handleLogout} 
+        onToggleClientActive={handleToggleClientActive}
+        onUpdateAdminNotes={handleUpdateAdminNotes}
+        onUpdateClientPassword={async (id, p) => { 
+          setClients(prev => prev.map(c => c.id === id ? { ...c, password: p } : c));
+          await supabase.from('clients').update({ password: p }).eq('id', id); 
+        }}
+        onDeleteClient={async (id) => { 
+          if(confirm('Tem certeza que deseja excluir esta aluna permanentemente?')){ 
+            setClients(prev => prev.filter(c => c.id !== id));
+            await supabase.from('clients').delete().eq('id', id); 
+          } 
+        }}
+        onUpdateReferralStatus={handleUpdateReferralStatus}
+        onPayCommission={handlePayCommission}
+        onAddProduct={handleAddProduct}
+        onDeleteProduct={handleDeleteProduct}
+      />
     );
   }
 
@@ -218,34 +260,6 @@ const App: React.FC = () => {
     );
   }
 
-  if (isAdmin) {
-    return (
-      <AdminDashboard 
-        clients={clients} 
-        entries={entries} 
-        referrals={referrals}
-        products={products}
-        onLogout={handleLogout} 
-        onToggleClientActive={handleToggleClientActive}
-        onUpdateAdminNotes={handleUpdateAdminNotes}
-        onUpdateClientPassword={async (id, p) => { 
-          setClients(prev => prev.map(c => c.id === id ? { ...c, password: p } : c));
-          await supabase.from('clients').update({ password: p }).eq('id', id); 
-        }}
-        onDeleteClient={async (id) => { 
-          if(confirm('Excluir?')){ 
-            setClients(prev => prev.filter(c => c.id !== id));
-            await supabase.from('clients').delete().eq('id', id); 
-          } 
-        }}
-        onUpdateReferralStatus={handleUpdateReferralStatus}
-        onPayCommission={handlePayCommission}
-        onAddProduct={handleAddProduct}
-        onDeleteProduct={handleDeleteProduct}
-      />
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#FFF9F9] flex flex-col items-center justify-center p-4 relative overflow-hidden font-inter">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 sm:p-12 text-center border border-rose-50">
@@ -260,28 +274,36 @@ const App: React.FC = () => {
 
         {view === 'landing' && (
           <div className="w-full space-y-3">
-            <button onClick={() => setView('login-client')} className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl hover:bg-rose-700 transition-all uppercase tracking-widest text-xs">Acessar Diário</button>
+            <button onClick={() => setView('login-client')} className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl hover:bg-rose-700 transition-all uppercase tracking-widest text-xs shadow-lg shadow-rose-100">Acessar Painel</button>
             <button onClick={() => setView('register')} className="w-full bg-white text-rose-600 font-bold py-4 rounded-xl border border-rose-100 hover:border-rose-300 transition-all uppercase tracking-widest text-[10px]">Novo Cadastro</button>
           </div>
         )}
 
         {view === 'pending-notice' && (
-          <div className="w-full space-y-8">
+          <div className="w-full space-y-8 animate-in zoom-in-95 duration-300">
             <div className="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto text-xl">✓</div>
             <h3 className="text-xl font-bold">Cadastro Recebido!</h3>
-            <p className="text-sm text-neutral-400 italic">Aguarde a liberação pela Rosimar para acessar seu painel.</p>
-            <button onClick={() => setView('landing')} className="w-full bg-rose-600 text-white py-4 rounded-xl font-bold uppercase text-xs">Voltar</button>
+            <p className="text-sm text-neutral-400 italic">Sua conta está em análise. Aguarde a liberação pela Rosimar para acessar seu painel.</p>
+            <button onClick={() => setView('landing')} className="w-full bg-rose-600 text-white py-4 rounded-xl font-bold uppercase text-xs">Entendi</button>
           </div>
         )}
 
         {view === 'login-client' && (
-          <form onSubmit={handleClientLogin} className="w-full space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-rose-400 uppercase tracking-widest">Código de Acesso</label>
-              <input type="password" required value={accessCode} onChange={(e) => setAccessCode(e.target.value)} className="w-full text-center text-3xl font-bold tracking-[0.3em] py-4 bg-rose-50 border-b-2 border-rose-200 outline-none focus:border-rose-500 transition-all" placeholder="••••" />
+          <form onSubmit={handleClientLogin} className="w-full space-y-6 animate-in slide-in-from-bottom-4 duration-300">
+            <div className="space-y-2 text-left">
+              <label className="text-[10px] font-bold text-rose-400 uppercase tracking-widest ml-1">Código de Acesso</label>
+              <input 
+                type="password" 
+                required 
+                autoFocus
+                value={accessCode} 
+                onChange={(e) => setAccessCode(e.target.value)} 
+                className="w-full text-center text-2xl font-bold tracking-[0.3em] py-5 bg-rose-50 border-b-2 border-rose-200 outline-none focus:border-rose-500 transition-all rounded-xl" 
+                placeholder="••••" 
+              />
             </div>
             <button type="submit" className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl uppercase text-xs shadow-lg shadow-rose-100">Entrar</button>
-            <button type="button" onClick={() => setView('landing')} className="text-rose-300 text-[10px] uppercase font-bold">Voltar</button>
+            <button type="button" onClick={() => setView('landing')} className="text-rose-300 text-[10px] uppercase font-bold hover:text-rose-500">Voltar para o início</button>
           </form>
         )}
 
@@ -293,43 +315,56 @@ const App: React.FC = () => {
             const name = formData.get('name') as string;
             const password = formData.get('password') as string;
             
-            const { data: existing } = await supabase.from('clients').select('id').eq('password', password.trim()).maybeSingle();
-            if (existing) {
-              alert('Este código já está em uso.');
+            const cleanPassword = password.trim();
+
+            if (cleanPassword === MASTER_ADMIN_PASSWORD) {
+              alert('Este código é reservado. Escolha outro.');
               setIsSubmitting(false);
               return;
             }
 
-            await supabase.from('clients').insert([{
-              name: name.toUpperCase().trim(),
-              password: password.trim(),
-              height: parseFloat((formData.get('height') as string).replace(',','.')),
-              initial_weight: parseFloat((formData.get('initialWeight') as string).replace(',','.')),
-              target_weight: parseFloat((formData.get('targetWeight') as string).replace(',','.')),
-              active: false,
-              admin_notes: "Aguardando liberação..."
-            }]);
-            
-            fetchData();
-            setIsSubmitting(false);
-            setView('pending-notice');
-          }} className="w-full space-y-4 text-left">
+            const { data: existing } = await supabase.from('clients').select('id').eq('password', cleanPassword).maybeSingle();
+            if (existing) {
+              alert('Este código já está em uso por outra pessoa.');
+              setIsSubmitting(false);
+              return;
+            }
+
+            try {
+              await supabase.from('clients').insert([{
+                name: name.toUpperCase().trim(),
+                password: cleanPassword,
+                height: parseFloat((formData.get('height') as string).replace(',','.')),
+                initial_weight: parseFloat((formData.get('initialWeight') as string).replace(',','.')),
+                target_weight: parseFloat((formData.get('targetWeight') as string).replace(',','.')),
+                active: false,
+                admin_notes: "Aguardando liberação..."
+              }]);
+              
+              await fetchData();
+              setView('pending-notice');
+            } catch (err) {
+              alert("Erro ao realizar cadastro. Verifique sua conexão.");
+            } finally {
+              setIsSubmitting(false);
+            }
+          }} className="w-full space-y-4 text-left animate-in slide-in-from-bottom-4 duration-300">
             <div className="space-y-3">
-              <input name="name" required placeholder="NOME COMPLETO" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold text-neutral-800" />
+              <input name="name" required placeholder="NOME COMPLETO" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold text-neutral-800 focus:bg-white focus:border-rose-300" />
               <div className="grid grid-cols-2 gap-3">
-                <input name="height" required placeholder="ALTURA (CM)" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold" />
-                <input name="initialWeight" required placeholder="PESO (KG)" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold" />
+                <input name="height" required placeholder="ALTURA (ex: 165)" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold focus:bg-white" />
+                <input name="initialWeight" required placeholder="PESO ATUAL (KG)" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold focus:bg-white" />
               </div>
-              <input name="targetWeight" required placeholder="META DE PESO (KG)" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold" />
+              <input name="targetWeight" required placeholder="META DE PESO (KG)" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold focus:bg-white" />
               <div className="pt-4 border-t border-rose-50 space-y-2 text-center">
-                <label className="text-[9px] font-bold text-rose-400 uppercase">Defina seu código de acesso</label>
-                <input name="password" type="password" required maxLength={12} placeholder="••••" className="w-full px-5 py-4 bg-rose-100 border border-rose-200 rounded-xl text-center text-sm font-bold tracking-[0.5em] outline-none" />
+                <label className="text-[9px] font-bold text-rose-400 uppercase tracking-widest">Crie seu código de acesso pessoal</label>
+                <input name="password" type="password" required maxLength={12} placeholder="••••" className="w-full px-5 py-4 bg-rose-100 border border-rose-200 rounded-xl text-center text-sm font-bold tracking-[0.5em] outline-none focus:bg-rose-50" />
               </div>
             </div>
             <button type="submit" disabled={isSubmitting} className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl shadow-lg transition-all uppercase tracking-widest text-xs flex items-center justify-center">
-              {isSubmitting ? 'SOLICITANDO...' : 'SOLICITAR CADASTRO'}
+              {isSubmitting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'SOLICITAR ACESSO'}
             </button>
-            <button type="button" onClick={() => setView('landing')} className="w-full text-rose-300 text-[10px] uppercase font-bold text-center mt-2">Voltar</button>
+            <button type="button" onClick={() => setView('landing')} className="w-full text-rose-300 text-[10px] uppercase font-bold text-center mt-2 hover:text-rose-500">Voltar</button>
           </form>
         )}
       </div>
