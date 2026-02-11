@@ -59,12 +59,10 @@ const App: React.FC = () => {
     paidAt: r.paid_at
   });
 
-  // Busca dados de forma PROTEGIDA (só após login)
   const fetchData = async (clientId?: string, asAdmin: boolean = false) => {
     setLoading(true);
     try {
       if (asAdmin) {
-        // Rose vê tudo
         const [cRes, eRes, pRes, rRes] = await Promise.all([
           supabase.from('clients').select('*').order('name'),
           supabase.from('weight_entries').select('*').order('date', { ascending: false }),
@@ -76,7 +74,6 @@ const App: React.FC = () => {
         if (pRes.data) setProducts(pRes.data);
         if (rRes.data) setReferrals(rRes.data.map(mapReferralFromDB));
       } else if (clientId) {
-        // Aluna vê apenas o dela + ranking público
         const [meRes, entriesRes, allCRes, allERes, pRes, refRes] = await Promise.all([
           supabase.from('clients').select('*').eq('id', clientId).single(),
           supabase.from('weight_entries').select('*').eq('client_id', clientId).order('date'),
@@ -110,8 +107,8 @@ const App: React.FC = () => {
       const { error } = await supabase.from('weight_entries').insert([{ client_id: currentUser.id, ...data }]);
       if (error) throw error;
       fetchData(currentUser.id);
-    } catch (err) {
-      alert("Erro ao salvar check-in.");
+    } catch (err: any) {
+      alert("Erro ao salvar check-in: " + err.message);
     }
   };
 
@@ -147,25 +144,32 @@ const App: React.FC = () => {
     }
 
     setLoading(true);
-    const { data: client, error } = await supabase
-      .from('clients')
-      .select('id, active')
-      .eq('password', code)
-      .maybeSingle();
+    try {
+      const { data: client, error } = await supabase
+        .from('clients')
+        .select('id, active')
+        .eq('password', code)
+        .maybeSingle();
 
-    if (error || !client) {
-      alert('Código incorreto ou conta inexistente.');
+      if (error) throw error;
+      
+      if (!client) {
+        alert('Código incorreto ou conta inexistente.');
+        setLoading(false);
+        return;
+      }
+
+      if (!client.active) {
+        setView('pending-notice');
+        setLoading(false);
+        return;
+      }
+
+      fetchData(client.id);
+    } catch (err: any) {
+      alert("Erro no login: " + err.message);
       setLoading(false);
-      return;
     }
-
-    if (!client.active) {
-      setView('pending-notice');
-      setLoading(false);
-      return;
-    }
-
-    fetchData(client.id);
   };
 
   const handleLogout = () => {
@@ -181,7 +185,7 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#FFF9F9] flex flex-col items-center justify-center">
         <div className="w-10 h-10 border-4 border-rose-200 border-t-rose-600 rounded-full animate-spin"></div>
-        <p className="mt-4 text-[10px] font-black uppercase text-rose-400 tracking-widest">Aguarde...</p>
+        <p className="mt-4 text-[10px] font-black uppercase text-rose-400 tracking-widest">Sincronizando...</p>
       </div>
     );
   }
@@ -306,14 +310,16 @@ const App: React.FC = () => {
             const password = formData.get('password') as string;
             
             try {
-              const { data: existing } = await supabase.from('clients').select('id').eq('password', password).maybeSingle();
+              const { data: existing, error: checkError } = await supabase.from('clients').select('id').eq('password', password).maybeSingle();
+              if (checkError) throw checkError;
+              
               if (existing) {
                 alert('Este código já está em uso.');
                 setIsSubmitting(false);
                 return;
               }
 
-              const { error } = await supabase.from('clients').insert([{
+              const { error: insertError } = await supabase.from('clients').insert([{
                 name: name.toUpperCase().trim(),
                 password: password.trim(),
                 height: parseFloat((formData.get('height') as string).replace(',','.')),
@@ -323,10 +329,11 @@ const App: React.FC = () => {
                 admin_notes: "Olá Musa! Seu acesso será liberado em breve."
               }]);
               
-              if (error) throw error;
+              if (insertError) throw insertError;
               setView('pending-notice');
-            } catch (err) {
-              alert("Erro ao realizar cadastro.");
+            } catch (err: any) {
+              alert("Erro no cadastro: " + (err.message || "Verifique se executou o SQL no painel do Supabase."));
+              console.error(err);
             } finally {
               setIsSubmitting(false);
             }
