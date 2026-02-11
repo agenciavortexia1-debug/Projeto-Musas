@@ -3,6 +3,7 @@ import React, { useState, useRef } from 'react';
 import { Client, WeightEntry, Referral, Product } from '../types';
 import WeightChart from './WeightChart';
 import RankingView from './RankingView';
+import { uploadImage } from '../lib/supabase';
 
 interface ClientDashboardProps {
   client: Client;
@@ -13,7 +14,7 @@ interface ClientDashboardProps {
   allEntries?: WeightEntry[];
   onAddEntry: (entry: Omit<WeightEntry, 'id' | 'clientId'>) => void;
   onAddReferral: (friendName: string, friendContact: string, productId: string) => void;
-  onUpdateProfileImage: (clientId: string, base64: string) => void;
+  onUpdateProfileImage: (clientId: string, url: string) => void;
   onLogout: () => void;
 }
 
@@ -25,7 +26,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
   const [newWeight, setNewWeight] = useState<string>('');
   const [mood, setMood] = useState<'happy' | 'neutral' | 'sad'>('happy');
   const [notes, setNotes] = useState('');
-  const [entryPhoto, setEntryPhoto] = useState<string | null>(null);
+  const [entryPhotoUrl, setEntryPhotoUrl] = useState<string | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
 
   const [friendName, setFriendName] = useState('');
@@ -35,41 +36,52 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const entryPhotoRef = useRef<HTMLInputElement>(null);
 
-  const compressImage = (base64Str: string): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.src = base64Str;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 1024;
-        const MAX_HEIGHT = 1024;
-        let width = img.width;
-        let height = img.height;
+  const compressAndUpload = async (file: File, path: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const img = new Image();
+        img.src = e.target?.result as string;
+        img.onload = async () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1024;
+          const MAX_HEIGHT = 1024;
+          let width = img.width;
+          let height = img.height;
 
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
           }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
 
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.7));
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          
+          try {
+            const publicUrl = await uploadImage('photos', path, compressedBase64);
+            resolve(publicUrl);
+          } catch (err) {
+            reject(err);
+          }
+        };
       };
+      reader.readAsDataURL(file);
     });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newWeight || !entryPhoto) {
+    if (!newWeight || !entryPhotoUrl) {
       alert('Peso e Foto são obrigatórios!');
       return;
     }
@@ -78,11 +90,11 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
       weight: parseFloat(newWeight.replace(',','.')),
       mood,
       notes,
-      photo: entryPhoto
+      photo: entryPhotoUrl
     });
     setNewWeight('');
     setNotes('');
-    setEntryPhoto(null);
+    setEntryPhotoUrl(null);
     setActiveTab('progress');
   };
 
@@ -90,25 +102,31 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       setIsCompressing(true);
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const compressed = await compressImage(reader.result as string);
-        setEntryPhoto(compressed);
+      try {
+        const path = `entries/${client.id}/${Date.now()}.jpg`;
+        const url = await compressAndUpload(file, path);
+        setEntryPhotoUrl(url);
+      } catch (err) {
+        alert("Erro no upload da foto.");
+      } finally {
         setIsCompressing(false);
-      };
-      reader.readAsDataURL(file);
+      }
     }
   };
 
   const handleProfileImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const compressed = await compressImage(reader.result as string);
-        onUpdateProfileImage(client.id, compressed);
-      };
-      reader.readAsDataURL(file);
+      setIsCompressing(true);
+      try {
+        const path = `profiles/${client.id}.jpg`;
+        const url = await compressAndUpload(file, path);
+        onUpdateProfileImage(client.id, url);
+      } catch (err) {
+        alert("Erro no upload do perfil.");
+      } finally {
+        setIsCompressing(false);
+      }
     }
   };
 
@@ -171,7 +189,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
             <h2 className="text-xl sm:text-2xl font-light">Olá, <span className="font-bold text-rose-600">{client.name.split(' ')[0]}</span></h2>
           </div>
           <div className="flex items-center gap-4 relative z-10">
-            <div onClick={() => fileInputRef.current?.click()} className="w-10 h-10 rounded-full border-2 border-white shadow shadow-rose-100 overflow-hidden bg-rose-50 cursor-pointer">
+            <div onClick={() => !isCompressing && fileInputRef.current?.click()} className={`w-10 h-10 rounded-full border-2 border-white shadow shadow-rose-100 overflow-hidden bg-rose-50 cursor-pointer ${isCompressing ? 'animate-pulse' : ''}`}>
               {client.profileImage ? <img src={client.profileImage} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-rose-200 text-[10px] font-black">?</div>}
             </div>
             <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 text-rose-500"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" /></svg></button>
@@ -218,18 +236,18 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
 
                 <div className="space-y-2">
                    <label className="text-[8px] font-black uppercase text-rose-300 tracking-widest">Foto Obrigatória</label>
-                   <div onClick={() => !isCompressing && entryPhotoRef.current?.click()} className={`w-full h-40 border-2 border-dashed border-rose-100 rounded-2xl flex items-center justify-center cursor-pointer bg-rose-50/20 overflow-hidden relative transition-all ${isCompressing ? 'opacity-50 grayscale' : ''}`}>
+                   <div onClick={() => !isCompressing && entryPhotoRef.current?.click()} className={`w-full h-40 border-2 border-dashed border-rose-100 rounded-2xl flex items-center justify-center cursor-pointer bg-rose-50/20 overflow-hidden relative transition-all ${isCompressing ? 'opacity-50' : ''}`}>
                       {isCompressing ? (
                          <div className="text-center">
                             <div className="w-6 h-6 border-2 border-rose-400 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                            <p className="text-[8px] font-black uppercase text-rose-400">Otimizando Foto...</p>
+                            <p className="text-[8px] font-black uppercase text-rose-400">Enviando Foto...</p>
                          </div>
-                      ) : entryPhoto ? (
-                        <img src={entryPhoto} className="w-full h-full object-cover" />
+                      ) : entryPhotoUrl ? (
+                        <img src={entryPhotoUrl} className="w-full h-full object-cover" />
                       ) : (
                         <div className="text-center">
                           <svg className="w-8 h-8 text-rose-200 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812-1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
-                          <p className="text-[8px] font-black uppercase text-rose-300">Câmera ou Galeria</p>
+                          <p className="text-[8px] font-black uppercase text-rose-300">Tirar Foto ou Galeria</p>
                         </div>
                       )}
                    </div>

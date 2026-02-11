@@ -1,7 +1,45 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://qzbqcysyzybifzzxruvz.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6YnFjeXN5enliaWZ6enhydXZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NjU0MTMsImV4cCI6MjA4NjM0MTQxM30.gsXBO5hDPzSWbVVqPQXnHzex_u4xrtcXeJo59nHhHnI';
+// ATENÇÃO: Substitua pelos dados do seu NOVO projeto Supabase
+export const supabaseUrl = 'https://qzbqcysyzybifzzxruvz.supabase.co';
+export const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6YnFjeXN5enliaWZ6enhydXZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NjU0MTMsImV4cCI6MjA4NjM0MTQxM30.gsXBO5hDPzSWbVVqPQXnHzex_u4xrtcXeJo59nHhHnI';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+/**
+ * Upload de imagem para o Supabase Storage.
+ * Retorna a URL pública. Isso evita salvar arquivos pesados no banco de dados.
+ */
+export async function uploadImage(bucket: string, path: string, base64Data: string): Promise<string> {
+  try {
+    const base64Content = base64Data.split(',')[1];
+    const byteCharacters = atob(base64Content);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: 'image/jpeg' });
+
+    // Upload do arquivo
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(path, blob, {
+        contentType: 'image/jpeg',
+        upsert: true
+      });
+
+    if (error) throw error;
+
+    // Gera URL pública
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(data.path);
+
+    return publicUrl;
+  } catch (err) {
+    console.error("Erro no upload da imagem:", err);
+    throw new Error("Falha ao salvar imagem no servidor.");
+  }
+}

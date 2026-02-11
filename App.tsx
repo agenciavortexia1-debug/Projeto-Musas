@@ -1,16 +1,18 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Client, WeightEntry, Referral, Product, ReferralStatus } from './types';
 import ClientDashboard from './components/ClientDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import { supabase } from './lib/supabase';
 
-// ESTA É A SUA SENHA MESTRE
+// SENHA MESTRE PARA ROSE
 const MASTER_ADMIN_PASSWORD = 'rose1213*A'; 
 
 const App: React.FC = () => {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [clients, setClients] = useState<Client[]>([]);
   const [entries, setEntries] = useState<WeightEntry[]>([]);
   const [referrals, setReferrals] = useState<Referral[]>([]);
@@ -19,7 +21,6 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<Client | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [view, setView] = useState<'landing' | 'login-client' | 'register' | 'pending-notice'>('landing');
-  
   const [accessCode, setAccessCode] = useState('');
 
   const mapClientFromDB = (c: any): Client => ({
@@ -40,7 +41,6 @@ const App: React.FC = () => {
     clientId: e.client_id,
     date: e.date,
     weight: parseFloat(e.weight) || 0,
-    waist: e.waist ? parseFloat(e.waist) : undefined,
     mood: e.mood,
     notes: e.notes,
     photo: e.photo
@@ -59,24 +59,40 @@ const App: React.FC = () => {
     paidAt: r.paid_at
   });
 
-  const fetchData = async () => {
+  // Busca dados de forma PROTEGIDA (só após login)
+  const fetchData = async (clientId?: string, asAdmin: boolean = false) => {
+    setLoading(true);
     try {
-      const [
-        { data: clientsData },
-        { data: entriesData },
-        { data: productsData },
-        { data: referralsData }
-      ] = await Promise.all([
-        supabase.from('clients').select('*'),
-        supabase.from('weight_entries').select('*'),
-        supabase.from('products').select('*'),
-        supabase.from('referrals').select('*')
-      ]);
+      if (asAdmin) {
+        // Rose vê tudo
+        const [cRes, eRes, pRes, rRes] = await Promise.all([
+          supabase.from('clients').select('*').order('name'),
+          supabase.from('weight_entries').select('*').order('date', { ascending: false }),
+          supabase.from('products').select('*'),
+          supabase.from('referrals').select('*').order('created_at', { ascending: false })
+        ]);
+        if (cRes.data) setClients(cRes.data.map(mapClientFromDB));
+        if (eRes.data) setEntries(eRes.data.map(mapEntryFromDB));
+        if (pRes.data) setProducts(pRes.data);
+        if (rRes.data) setReferrals(rRes.data.map(mapReferralFromDB));
+      } else if (clientId) {
+        // Aluna vê apenas o dela + ranking público
+        const [meRes, entriesRes, allCRes, allERes, pRes, refRes] = await Promise.all([
+          supabase.from('clients').select('*').eq('id', clientId).single(),
+          supabase.from('weight_entries').select('*').eq('client_id', clientId).order('date'),
+          supabase.from('clients').select('id, name, profile_image, active, initial_weight'),
+          supabase.from('weight_entries').select('client_id, weight, date'),
+          supabase.from('products').select('*'),
+          supabase.from('referrals').select('*').eq('referrer_id', clientId)
+        ]);
 
-      if (clientsData) setClients(clientsData.map(mapClientFromDB));
-      if (entriesData) setEntries(entriesData.map(mapEntryFromDB));
-      if (productsData) setProducts(productsData);
-      if (referralsData) setReferrals(referralsData.map(mapReferralFromDB));
+        if (meRes.data) setCurrentUser(mapClientFromDB(meRes.data));
+        if (entriesRes.data) setEntries(entriesRes.data.map(mapEntryFromDB));
+        if (allCRes.data) setClients(allCRes.data.map(mapClientFromDB));
+        if (allERes.data) setEntries(prev => [...prev, ...allERes.data.map(mapEntryFromDB)]);
+        if (pRes.data) setProducts(pRes.data);
+        if (refRes.data) setReferrals(refRes.data.map(mapReferralFromDB));
+      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
@@ -85,117 +101,71 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchData();
+    setInitialLoading(false);
   }, []);
 
   const handleAddEntry = async (data: Omit<WeightEntry, 'id' | 'clientId'>) => {
     if (!currentUser) return;
-    const tempId = crypto.randomUUID();
-    const newEntry: WeightEntry = { ...data, id: tempId, clientId: currentUser.id };
-    
-    setEntries(prev => [...prev, newEntry]);
-
     try {
-      await supabase.from('weight_entries').insert([{ client_id: currentUser.id, ...data }]);
+      const { error } = await supabase.from('weight_entries').insert([{ client_id: currentUser.id, ...data }]);
+      if (error) throw error;
+      fetchData(currentUser.id);
     } catch (err) {
-      setEntries(prev => prev.filter(e => e.id !== tempId));
-      alert("Erro ao salvar no servidor. Tente novamente.");
+      alert("Erro ao salvar check-in.");
     }
   };
 
-  const handleUpdateProfileImage = async (id: string, img: string) => {
-    setClients(prev => prev.map(c => c.id === id ? { ...c, profileImage: img } : c));
-    await supabase.from('clients').update({ profile_image: img }).eq('id', id);
+  const handleUpdateProfileImage = async (id: string, imgUrl: string) => {
+    await supabase.from('clients').update({ profile_image: imgUrl }).eq('id', id);
+    if (currentUser?.id === id) fetchData(id);
+    else if (isAdmin) fetchData(undefined, true);
   };
 
   const handleAddReferral = async (friendName: string, friendContact: string, productId: string) => {
     if (!currentUser) return;
     const product = products.find(p => p.id === productId);
-    const tempId = crypto.randomUUID();
-    const newRef: Referral = {
-      id: tempId,
-      referrerId: currentUser.id,
-      friendName,
-      friendContact,
-      productId,
-      productName: product?.name || '',
-      rewardValue: product?.reward || 0,
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    };
-
-    setReferrals(prev => [...prev, newRef]);
     await supabase.from('referrals').insert([{ 
       referrer_id: currentUser.id, 
-      friend_name: friendName, 
+      friend_name: friendName.toUpperCase(), 
       friend_contact: friendContact, 
       product_id: productId, 
       product_name: product?.name, 
       reward_value: product?.reward, 
       status: 'pending' 
     }]);
+    fetchData(currentUser.id);
   };
 
-  const handleToggleClientActive = async (id: string) => {
-    const target = clients.find(c => c.id === id);
-    if (!target) return;
-    const newStatus = !target.active;
-    setClients(prev => prev.map(c => c.id === id ? { ...c, active: newStatus } : c));
-    await supabase.from('clients').update({ active: newStatus }).eq('id', id);
-  };
-
-  const handleUpdateAdminNotes = async (id: string, notes: string) => {
-    setClients(prev => prev.map(c => c.id === id ? { ...c, adminNotes: notes } : c));
-    await supabase.from('clients').update({ admin_notes: notes }).eq('id', id);
-  };
-
-  const handleUpdateReferralStatus = async (id: string, status: ReferralStatus) => {
-    setReferrals(prev => prev.map(r => r.id === id ? { ...r, status } : r));
-    await supabase.from('referrals').update({ status }).eq('id', id);
-  };
-
-  const handlePayCommission = async (id: string) => {
-    const now = new Date().toISOString();
-    setReferrals(prev => prev.map(r => r.id === id ? { ...r, paidAt: now } : r));
-    await supabase.from('referrals').update({ paid_at: now }).eq('id', id);
-  };
-
-  const handleAddProduct = async (name: string, reward: number) => {
-    const tempId = crypto.randomUUID();
-    setProducts(prev => [...prev, { id: tempId, name, reward }]);
-    await supabase.from('products').insert([{ name, reward }]);
-    fetchData(); 
-  };
-
-  const handleDeleteProduct = async (id: string) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
-    await supabase.from('products').delete().eq('id', id);
-  };
-
-  const handleClientLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = accessCode.trim();
 
-    // Verificação de Acesso Admin Master
     if (code === MASTER_ADMIN_PASSWORD) {
       setIsAdmin(true);
-      setCurrentUser(null);
+      fetchData(undefined, true);
       return;
     }
 
-    const client = clients.find(c => c.password === code);
-    if (!client) { 
-      alert('Código de acesso não encontrado. Verifique se digitou corretamente.'); 
-      return; 
+    setLoading(true);
+    const { data: client, error } = await supabase
+      .from('clients')
+      .select('id, active')
+      .eq('password', code)
+      .maybeSingle();
+
+    if (error || !client) {
+      alert('Código incorreto ou conta inexistente.');
+      setLoading(false);
+      return;
     }
-    
-    if (!client.active) { 
-      setView('pending-notice'); 
-      return; 
+
+    if (!client.active) {
+      setView('pending-notice');
+      setLoading(false);
+      return;
     }
-    
-    setCurrentUser(client);
-    setIsAdmin(false);
+
+    fetchData(client.id);
   };
 
   const handleLogout = () => {
@@ -203,18 +173,19 @@ const App: React.FC = () => {
     setIsAdmin(false);
     setView('landing');
     setAccessCode('');
+    setClients([]);
+    setEntries([]);
   };
 
-  if (loading) {
+  if (initialLoading || loading) {
     return (
       <div className="min-h-screen bg-[#FFF9F9] flex flex-col items-center justify-center">
         <div className="w-10 h-10 border-4 border-rose-200 border-t-rose-600 rounded-full animate-spin"></div>
-        <p className="mt-4 text-[10px] font-black uppercase text-rose-400 tracking-widest">Carregando Musas...</p>
+        <p className="mt-4 text-[10px] font-black uppercase text-rose-400 tracking-widest">Aguarde...</p>
       </div>
     );
   }
 
-  // Prioridade de renderização: se for admin, mostra painel admin
   if (isAdmin) {
     return (
       <AdminDashboard 
@@ -223,22 +194,41 @@ const App: React.FC = () => {
         referrals={referrals}
         products={products}
         onLogout={handleLogout} 
-        onToggleClientActive={handleToggleClientActive}
-        onUpdateAdminNotes={handleUpdateAdminNotes}
+        onToggleClientActive={async (id) => {
+          const c = clients.find(x => x.id === id);
+          await supabase.from('clients').update({ active: !c?.active }).eq('id', id);
+          fetchData(undefined, true);
+        }}
+        onUpdateAdminNotes={async (id, notes) => {
+          await supabase.from('clients').update({ admin_notes: notes }).eq('id', id);
+          fetchData(undefined, true);
+        }}
         onUpdateClientPassword={async (id, p) => { 
-          setClients(prev => prev.map(c => c.id === id ? { ...c, password: p } : c));
-          await supabase.from('clients').update({ password: p }).eq('id', id); 
+          await supabase.from('clients').update({ password: p }).eq('id', id);
+          fetchData(undefined, true);
         }}
         onDeleteClient={async (id) => { 
-          if(confirm('Tem certeza que deseja excluir esta aluna permanentemente?')){ 
-            setClients(prev => prev.filter(c => c.id !== id));
-            await supabase.from('clients').delete().eq('id', id); 
+          if(confirm('Excluir musa permanentemente?')){ 
+            await supabase.from('clients').delete().eq('id', id);
+            fetchData(undefined, true);
           } 
         }}
-        onUpdateReferralStatus={handleUpdateReferralStatus}
-        onPayCommission={handlePayCommission}
-        onAddProduct={handleAddProduct}
-        onDeleteProduct={handleDeleteProduct}
+        onUpdateReferralStatus={async (id, status) => {
+          await supabase.from('referrals').update({ status }).eq('id', id);
+          fetchData(undefined, true);
+        }}
+        onPayCommission={async (id) => {
+          await supabase.from('referrals').update({ paid_at: new Date().toISOString() }).eq('id', id);
+          fetchData(undefined, true);
+        }}
+        onAddProduct={async (n, r) => {
+          await supabase.from('products').insert([{ name: n, reward: r }]);
+          fetchData(undefined, true);
+        }}
+        onDeleteProduct={async (id) => {
+          await supabase.from('products').delete().eq('id', id);
+          fetchData(undefined, true);
+        }}
       />
     );
   }
@@ -246,7 +236,7 @@ const App: React.FC = () => {
   if (currentUser) {
     return (
       <ClientDashboard 
-        client={clients.find(c => c.id === currentUser.id) || currentUser} 
+        client={currentUser} 
         entries={entries.filter(e => e.clientId === currentUser.id)} 
         referrals={referrals.filter(r => r.referrerId === currentUser.id)}
         products={products}
@@ -261,15 +251,15 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFF9F9] flex flex-col items-center justify-center p-4 relative overflow-hidden font-inter">
+    <div className="min-h-screen bg-[#FFF9F9] flex flex-col items-center justify-center p-4 relative overflow-hidden font-inter text-neutral-800">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 sm:p-12 text-center border border-rose-50">
         <div className="mb-8 flex justify-center">
-          <div className="w-16 h-16 bg-rose-600 flex items-center justify-center rounded-2xl shadow-xl">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M12 4v16m8-8H4" /></svg>
+          <div className="w-16 h-16 bg-rose-600 flex items-center justify-center rounded-2xl shadow-xl shadow-rose-100">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
           </div>
         </div>
         
-        <h2 className="text-3xl font-light text-neutral-800 mb-2 italic">Projeto <span className="font-bold not-italic text-rose-600">Musas</span></h2>
+        <h2 className="text-3xl font-light mb-2 italic">Projeto <span className="font-bold not-italic text-rose-600 tracking-tighter">Musas</span></h2>
         <p className="text-rose-400 text-[10px] uppercase tracking-[0.4em] mb-10 font-bold">Consultoria @rosimar_emagrecedores</p>
 
         {view === 'landing' && (
@@ -283,13 +273,13 @@ const App: React.FC = () => {
           <div className="w-full space-y-8 animate-in zoom-in-95 duration-300">
             <div className="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto text-xl">✓</div>
             <h3 className="text-xl font-bold">Cadastro Recebido!</h3>
-            <p className="text-sm text-neutral-400 italic">Sua conta está em análise. Aguarde a liberação pela Rosimar para acessar seu painel.</p>
+            <p className="text-sm text-neutral-400 italic">Sua conta está em análise. Aguarde a liberação pela Rosimar para acessar.</p>
             <button onClick={() => setView('landing')} className="w-full bg-rose-600 text-white py-4 rounded-xl font-bold uppercase text-xs">Entendi</button>
           </div>
         )}
 
         {view === 'login-client' && (
-          <form onSubmit={handleClientLogin} className="w-full space-y-6 animate-in slide-in-from-bottom-4 duration-300">
+          <form onSubmit={handleLogin} className="w-full space-y-6 animate-in slide-in-from-bottom-4 duration-300">
             <div className="space-y-2 text-left">
               <label className="text-[10px] font-bold text-rose-400 uppercase tracking-widest ml-1">Código de Acesso</label>
               <input 
@@ -315,36 +305,28 @@ const App: React.FC = () => {
             const name = formData.get('name') as string;
             const password = formData.get('password') as string;
             
-            const cleanPassword = password.trim();
-
-            if (cleanPassword === MASTER_ADMIN_PASSWORD) {
-              alert('Este código é reservado. Escolha outro.');
-              setIsSubmitting(false);
-              return;
-            }
-
-            const { data: existing } = await supabase.from('clients').select('id').eq('password', cleanPassword).maybeSingle();
-            if (existing) {
-              alert('Este código já está em uso por outra pessoa.');
-              setIsSubmitting(false);
-              return;
-            }
-
             try {
-              await supabase.from('clients').insert([{
+              const { data: existing } = await supabase.from('clients').select('id').eq('password', password).maybeSingle();
+              if (existing) {
+                alert('Este código já está em uso.');
+                setIsSubmitting(false);
+                return;
+              }
+
+              const { error } = await supabase.from('clients').insert([{
                 name: name.toUpperCase().trim(),
-                password: cleanPassword,
+                password: password.trim(),
                 height: parseFloat((formData.get('height') as string).replace(',','.')),
                 initial_weight: parseFloat((formData.get('initialWeight') as string).replace(',','.')),
                 target_weight: parseFloat((formData.get('targetWeight') as string).replace(',','.')),
                 active: false,
-                admin_notes: "Aguardando liberação..."
+                admin_notes: "Olá Musa! Seu acesso será liberado em breve."
               }]);
               
-              await fetchData();
+              if (error) throw error;
               setView('pending-notice');
             } catch (err) {
-              alert("Erro ao realizar cadastro. Verifique sua conexão.");
+              alert("Erro ao realizar cadastro.");
             } finally {
               setIsSubmitting(false);
             }
