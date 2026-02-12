@@ -174,7 +174,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <h3 className="text-xl font-bold text-neutral-800 uppercase">{selectedClient.name}</h3>
                         <div className="bg-rose-50 px-3 py-1 rounded-full text-[10px] font-bold text-rose-600 uppercase">Média: {getClientStats(selectedClient).weeklyLoss.toFixed(2)}kg/sem</div>
                       </div>
-                      <div className="h-64 sm:h-80"><WeightChart entries={entries.filter(e => e.clientId === selectedClient.id)} targetWeight={selectedClient.targetWeight} initialWeight={selectedClient.initialWeight} /></div>
+                      <div className="h-64 sm:h-80"><WeightChart entries={entries.filter(e => e.clientId === selectedClient.id)} targetWeight={selectedClient.targetWeight} initialWeight={selectedClient.initialWeight} startDate={selectedClient.startDate} /></div>
                       
                       <div className="space-y-4 bg-rose-50/20 p-6 rounded-xl border border-rose-100">
                         <h4 className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">Feedback Consultora</h4>

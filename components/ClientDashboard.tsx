@@ -220,7 +220,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({
 
             <div className="bg-white p-4 sm:p-8 rounded-2xl border border-rose-100 h-[300px] sm:h-[400px]">
                <h3 className="text-[10px] font-black uppercase text-neutral-800 mb-6 tracking-widest">Sua Evolução</h3>
-               <WeightChart entries={entries} targetWeight={client.targetWeight} initialWeight={client.initialWeight} />
+               <WeightChart entries={entries} targetWeight={client.targetWeight} initialWeight={client.initialWeight} startDate={client.startDate} />
             </div>
           </div>
         )}

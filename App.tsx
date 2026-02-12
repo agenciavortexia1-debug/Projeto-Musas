@@ -77,7 +77,7 @@ const App: React.FC = () => {
         const [meRes, entriesRes, allCRes, allERes, pRes, refRes] = await Promise.all([
           supabase.from('clients').select('*').eq('id', clientId).single(),
           supabase.from('weight_entries').select('*').eq('client_id', clientId).order('date'),
-          supabase.from('clients').select('id, name, profile_image, active, initial_weight'),
+          supabase.from('clients').select('id, name, profile_image, active, initial_weight, start_date'),
           supabase.from('weight_entries').select('client_id, weight, date'),
           supabase.from('products').select('*'),
           supabase.from('referrals').select('*').eq('referrer_id', clientId)
@@ -331,6 +331,7 @@ const App: React.FC = () => {
                 height: parseFloat((formData.get('height') as string).replace(',','.')),
                 initial_weight: parseFloat((formData.get('initialWeight') as string).replace(',','.')),
                 target_weight: parseFloat((formData.get('targetWeight') as string).replace(',','.')),
+                start_date: new Date().toISOString(), // Enviando data explícita para o gráfico
                 active: false,
                 admin_notes: "Bem-vinda à sua nova versão, Musa! ✨ Estou muito feliz em acompanhar sua evolução. Lembre-se: cada pequeno passo te deixa mais próxima do seu grande objetivo. Vamos juntas!"
               }]);
