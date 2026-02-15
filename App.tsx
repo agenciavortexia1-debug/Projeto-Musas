@@ -23,6 +23,30 @@ const App: React.FC = () => {
   const [view, setView] = useState<'landing' | 'login-client' | 'register' | 'pending-notice'>('landing');
   const [accessCode, setAccessCode] = useState('');
 
+  // PWA Install State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setShowInstallBtn(false);
+    }
+    setDeferredPrompt(null);
+  };
+
   const mapClientFromDB = (c: any): Client => ({
     id: c.id,
     name: c.name,
@@ -256,7 +280,18 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FFF9F9] flex flex-col items-center justify-center p-4 relative overflow-hidden font-inter text-neutral-800">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 sm:p-12 text-center border border-rose-50">
+      <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 sm:p-12 text-center border border-rose-50 relative">
+        {/* PWA Install Notification - Botão de Download */}
+        {showInstallBtn && (
+          <button 
+            onClick={handleInstallClick}
+            className="absolute -top-16 left-1/2 -translate-x-1/2 bg-amber-400 text-white px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl animate-bounce flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            Baixar Aplicativo
+          </button>
+        )}
+
         <div className="mb-8 flex justify-center">
           <div className="w-16 h-16 bg-rose-600 flex items-center justify-center rounded-2xl shadow-xl shadow-rose-100">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
@@ -270,6 +305,12 @@ const App: React.FC = () => {
           <div className="w-full space-y-3">
             <button onClick={() => setView('login-client')} className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl hover:bg-rose-700 transition-all uppercase tracking-widest text-xs shadow-lg shadow-rose-100">Acessar Painel</button>
             <button onClick={() => setView('register')} className="w-full bg-white text-rose-600 font-bold py-4 rounded-xl border border-rose-100 hover:border-rose-300 transition-all uppercase tracking-widest text-[10px]">Novo Cadastro</button>
+            
+            {/* Download Link for iOS users/manual instructions */}
+            <p className="pt-6 text-[8px] text-neutral-400 uppercase font-bold tracking-widest leading-relaxed">
+              Para instalar em iPhone:<br/>
+              Clique no <span className="text-rose-400">ícone de compartilhar</span> e depois em <span className="text-rose-400">"Adicionar à Tela de Início"</span>
+            </p>
           </div>
         )}
 
@@ -310,7 +351,6 @@ const App: React.FC = () => {
             const password = formData.get('password') as string;
             
             try {
-              // Testando conexão básica primeiro
               const { data: existing, error: checkError } = await supabase
                 .from('clients')
                 .select('id')
@@ -331,7 +371,7 @@ const App: React.FC = () => {
                 height: parseFloat((formData.get('height') as string).replace(',','.')),
                 initial_weight: parseFloat((formData.get('initialWeight') as string).replace(',','.')),
                 target_weight: parseFloat((formData.get('targetWeight') as string).replace(',','.')),
-                start_date: new Date().toISOString(), // Enviando data explícita para o gráfico
+                start_date: new Date().toISOString(),
                 active: false,
                 admin_notes: "Bem-vinda à sua nova versão, Musa! ✨ Estou muito feliz em acompanhar sua evolução. Lembre-se: cada pequeno passo te deixa mais próxima do seu grande objetivo. Vamos juntas!"
               }]);
@@ -339,12 +379,7 @@ const App: React.FC = () => {
               if (insertError) throw insertError;
               setView('pending-notice');
             } catch (err: any) {
-              if (err.message === 'Failed to fetch') {
-                alert("Erro de Conexão: O seu navegador ou rede está bloqueando o banco de dados. Tente desativar o AdBlock ou usar uma aba anônima.");
-              } else {
-                alert("Erro no cadastro: " + err.message);
-              }
-              console.error("Cadastro falhou:", err);
+              alert("Erro no cadastro: " + err.message);
             } finally {
               setIsSubmitting(false);
             }
