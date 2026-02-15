@@ -5,6 +5,7 @@ import ClientDashboard from './components/ClientDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import { supabase } from './lib/supabase';
 
+// SENHA MESTRE PARA ROSE
 const MASTER_ADMIN_PASSWORD = 'rose1213*A'; 
 
 const App: React.FC = () => {
@@ -22,21 +23,18 @@ const App: React.FC = () => {
   const [view, setView] = useState<'landing' | 'login-client' | 'register' | 'pending-notice'>('landing');
   const [accessCode, setAccessCode] = useState('');
 
-  // PWA Install Logic
+  // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
 
   useEffect(() => {
-    window.addEventListener('beforeinstallprompt', (e) => {
+    const handler = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
       setShowInstallBtn(true);
-    });
-
-    window.addEventListener('appinstalled', () => {
-      setShowInstallBtn(false);
-      setDeferredPrompt(null);
-    });
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
   const handleInstallClick = async () => {
@@ -44,9 +42,9 @@ const App: React.FC = () => {
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
-      setDeferredPrompt(null);
       setShowInstallBtn(false);
     }
+    setDeferredPrompt(null);
   };
 
   const mapClientFromDB = (c: any): Client => ({
@@ -282,36 +280,21 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FFF9F9] flex flex-col items-center justify-center p-4 relative overflow-hidden font-inter text-neutral-800">
-      
-      {/* PWA INSTALL BANNER / BUTTON */}
-      {showInstallBtn && view === 'landing' && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-sm animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="bg-white p-4 rounded-2xl shadow-2xl border border-rose-100 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-rose-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
-              </div>
-              <div className="overflow-hidden">
-                <p className="text-[10px] font-black uppercase text-rose-600 tracking-tight">Baixar App Musas</p>
-                <p className="text-[8px] text-neutral-400 font-bold uppercase truncate">Instale para acesso rápido</p>
-              </div>
-            </div>
-            <button 
-              onClick={handleInstallClick}
-              className="bg-rose-600 text-white px-4 py-2 rounded-lg text-[9px] font-black uppercase shadow-lg shadow-rose-100 flex-shrink-0"
-            >
-              Instalar
-            </button>
-          </div>
-        </div>
-      )}
-
       <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 sm:p-12 text-center border border-rose-50 relative">
+        {/* PWA Install Notification - Botão de Download */}
+        {showInstallBtn && (
+          <button 
+            onClick={handleInstallClick}
+            className="absolute -top-16 left-1/2 -translate-x-1/2 bg-amber-400 text-white px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl animate-bounce flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            Baixar Aplicativo
+          </button>
+        )}
+
         <div className="mb-8 flex justify-center">
-          <div className="w-20 h-20 p-1.5 bg-neutral-100 rounded-[2rem] shadow-inner flex items-center justify-center">
-            <div className="w-full h-full bg-rose-600 flex items-center justify-center rounded-[1.5rem] shadow-xl shadow-rose-200">
-              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
-            </div>
+          <div className="w-16 h-16 bg-rose-600 flex items-center justify-center rounded-2xl shadow-xl shadow-rose-100">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
           </div>
         </div>
         
@@ -323,15 +306,11 @@ const App: React.FC = () => {
             <button onClick={() => setView('login-client')} className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl hover:bg-rose-700 transition-all uppercase tracking-widest text-xs shadow-lg shadow-rose-100">Acessar Painel</button>
             <button onClick={() => setView('register')} className="w-full bg-white text-rose-600 font-bold py-4 rounded-xl border border-rose-100 hover:border-rose-300 transition-all uppercase tracking-widest text-[10px]">Novo Cadastro</button>
             
-            {/* Install Button as a text link if banner is closed */}
-            {showInstallBtn && (
-              <button 
-                onClick={handleInstallClick}
-                className="mt-4 text-rose-400 text-[9px] font-black uppercase tracking-widest hover:text-rose-600 transition-colors"
-              >
-                📥 Baixar Aplicativo no Celular
-              </button>
-            )}
+            {/* Download Link for iOS users/manual instructions */}
+            <p className="pt-6 text-[8px] text-neutral-400 uppercase font-bold tracking-widest leading-relaxed">
+              Para instalar em iPhone:<br/>
+              Clique no <span className="text-rose-400">ícone de compartilhar</span> e depois em <span className="text-rose-400">"Adicionar à Tela de Início"</span>
+            </p>
           </div>
         )}
 
@@ -390,8 +369,8 @@ const App: React.FC = () => {
                 name: name.toUpperCase().trim(),
                 password: password.trim(),
                 height: parseFloat((formData.get('height') as string).replace(',','.')),
-                initial_weight: parseFloat((formData.get('initial_weight') as string).replace(',','.')),
-                target_weight: parseFloat((formData.get('target_weight') as string).replace(',','.')),
+                initial_weight: parseFloat((formData.get('initialWeight') as string).replace(',','.')),
+                target_weight: parseFloat((formData.get('targetWeight') as string).replace(',','.')),
                 start_date: new Date().toISOString(),
                 active: false,
                 admin_notes: "Bem-vinda à sua nova versão, Musa! ✨ Estou muito feliz em acompanhar sua evolução. Lembre-se: cada pequeno passo te deixa mais próxima do seu grande objetivo. Vamos juntas!"
@@ -401,7 +380,6 @@ const App: React.FC = () => {
               setView('pending-notice');
             } catch (err: any) {
               alert("Erro no cadastro: " + err.message);
-              console.error("Cadastro falhou:", err);
             } finally {
               setIsSubmitting(false);
             }
@@ -410,9 +388,9 @@ const App: React.FC = () => {
               <input name="name" required placeholder="NOME COMPLETO" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold text-neutral-800 focus:bg-white focus:border-rose-300" />
               <div className="grid grid-cols-2 gap-3">
                 <input name="height" required placeholder="ALTURA (ex: 165)" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold focus:bg-white" />
-                <input name="initial_weight" required placeholder="PESO ATUAL (KG)" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold focus:bg-white" />
+                <input name="initialWeight" required placeholder="PESO ATUAL (KG)" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold focus:bg-white" />
               </div>
-              <input name="target_weight" required placeholder="META DE PESO (KG)" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold focus:bg-white" />
+              <input name="targetWeight" required placeholder="META DE PESO (KG)" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold focus:bg-white" />
               <div className="pt-4 border-t border-rose-50 space-y-2 text-center">
                 <label className="text-[9px] font-bold text-rose-400 uppercase tracking-widest">Crie seu código de acesso pessoal</label>
                 <input name="password" type="password" required maxLength={12} placeholder="••••" className="w-full px-5 py-4 bg-rose-100 border border-rose-200 rounded-xl text-center text-sm font-bold tracking-[0.5em] outline-none focus:bg-rose-50" />
