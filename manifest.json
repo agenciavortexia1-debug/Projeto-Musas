@@ -1,9 +1,8 @@
-
 {
   "name": "Projeto Musas",
   "short_name": "Musas",
   "description": "Consultoria Premium de Emagrecimento Rosimar",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#FFF9F9",

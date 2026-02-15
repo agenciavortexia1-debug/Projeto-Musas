@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -27,7 +26,6 @@
         .bg-musa-gradient {
             background: linear-gradient(135deg, #c084fc 0%, #db2777 100%);
         }
-        /* Esconder barras de scroll mas manter funcionalidade */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -55,9 +53,14 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js', { scope: '/' })
+          // Registro simplificado: o navegador resolve sw.js relativo à página atual.
+          // Removido o parâmetro 'scope' manual que estava forçando uma origem incorreta no sandbox.
+          navigator.serviceWorker.register('sw.js')
             .then(reg => console.log('PWA: Service Worker Ativo'))
-            .catch(err => console.log('PWA: Erro no SW', err));
+            .catch(err => {
+              // Logamos o aviso mas o app continuará funcionando normalmente
+              console.warn('PWA: Registro do Service Worker falhou (comum em previews restritos):', err.message);
+            });
         });
       }
     </script>

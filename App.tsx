@@ -22,21 +22,20 @@ const App: React.FC = () => {
   const [view, setView] = useState<'landing' | 'login-client' | 'register' | 'pending-notice'>('landing');
   const [accessCode, setAccessCode] = useState('');
 
-  // PWA - Lógica de Instalação Nativa
+  // PWA - Instalação Nativa Direta
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
 
   useEffect(() => {
-    // Escuta o evento do navegador que permite a instalação
     const handleBeforeInstall = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setShowInstallBtn(true); // Só mostra o botão se o navegador permitir instalar
+      setShowInstallBtn(true);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
 
-    // Se já estiver rodando como app, esconde o botão
+    // Se já estiver instalado, não mostra o botão
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setShowInstallBtn(false);
     }
@@ -47,7 +46,7 @@ const App: React.FC = () => {
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
     
-    // Mostra a janelinha de instalação do navegador na hora
+    // Chama o prompt nativo do navegador IMEDIATAMENTE
     deferredPrompt.prompt();
     
     const { outcome } = await deferredPrompt.userChoice;
@@ -153,9 +152,9 @@ const App: React.FC = () => {
 
   if (initialLoading || loading) {
     return (
-      <div className="min-h-screen bg-[#FFF9F9] flex flex-col items-center justify-center">
-        <div className="w-10 h-10 border-4 border-rose-200 border-t-rose-600 rounded-full animate-spin"></div>
-        <p className="mt-4 text-[10px] font-black uppercase text-rose-400 tracking-widest">Sincronizando...</p>
+      <div className="min-h-screen bg-[#FFF9F9] flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-12 h-12 border-4 border-rose-100 border-t-rose-600 rounded-full animate-spin"></div>
+        <p className="mt-6 text-[10px] font-black uppercase text-rose-400 tracking-[0.3em]">Carregando...</p>
       </div>
     );
   }
@@ -227,12 +226,12 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#FFF9F9] flex flex-col items-center justify-center p-4 relative overflow-hidden font-inter">
       
-      {/* BOTÃO DE DOWNLOAD DIRETO (SEM ALERTA) */}
+      {/* BOTÃO DE DOWNLOAD DIRETO - SEM ALERTAS, SEM ENROLAÇÃO */}
       {showInstallBtn && (
         <div className="fixed top-6 right-6 z-[100] animate-bounce">
           <button 
             onClick={handleInstallClick}
-            className="bg-musa-gradient text-white px-5 py-2.5 rounded-full text-xs font-bold shadow-xl flex items-center gap-2 border border-white/20 active:scale-95 transition-all"
+            className="bg-musa-gradient text-white px-5 py-2.5 rounded-full text-xs font-bold shadow-2xl flex items-center gap-2 border border-white/20 active:scale-95 transition-all"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -242,7 +241,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl p-8 sm:p-12 text-center border border-rose-50 relative overflow-hidden">
+      <div className="max-w-md w-full bg-white rounded-[3rem] shadow-2xl p-8 sm:p-12 text-center border border-rose-50 relative overflow-hidden">
         <div className="flex justify-center mb-10">
           <div className="w-24 h-24 bg-musa-gradient flex items-center justify-center rounded-[2.5rem] shadow-2xl shadow-rose-200 relative overflow-hidden group">
             <svg className="w-14 h-14 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -295,7 +294,7 @@ const App: React.FC = () => {
               setView('pending-notice');
             } catch (err) { alert("Erro ao cadastrar."); } finally { setIsSubmitting(false); }
           }} className="w-full space-y-4 text-left animate-in slide-in-from-bottom-4 duration-300">
-            <input name="name" required placeholder="NOME COMPLETO" className="w-full px-5 py-4 bg-rose-50/50 border border-rose-100 rounded-2xl outline-none text-xs font-bold" />
+            <input name="name" required placeholder="NOME COMPLETO" className="w-full px-5 py-4 bg-rose-50/50 border border-rose-100 rounded-2xl outline-none text-xs font-bold uppercase" />
             <div className="grid grid-cols-2 gap-3">
                 <input name="height" required placeholder="ALTURA (ex: 165)" className="px-5 py-4 bg-rose-50/50 border border-rose-100 rounded-2xl outline-none text-xs font-bold" />
                 <input name="initialWeight" required placeholder="PESO ATUAL" className="px-5 py-4 bg-rose-50/50 border border-rose-100 rounded-2xl outline-none text-xs font-bold" />
@@ -311,7 +310,7 @@ const App: React.FC = () => {
           <div className="w-full space-y-8 py-10">
             <div className="w-14 h-14 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto text-2xl">✓</div>
             <h3 className="text-xl font-bold">Solicitação Enviada!</h3>
-            <p className="text-sm text-neutral-400 font-light px-4">A Rosimar irá validar seu acesso em breve. Após validado, você poderá baixar o app clicando no botão do topo!</p>
+            <p className="text-sm text-neutral-400 font-light px-4">A Rosimar irá validar seu acesso em breve. O botão de download aparecerá no topo assim que você entrar!</p>
             <button onClick={() => setView('landing')} className="w-full bg-rose-600 text-white py-4 rounded-xl font-bold uppercase text-xs">Voltar</button>
           </div>
         )}
