@@ -135,6 +135,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {activeMenu === 'acompanhamento' && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+              {/* Card: ATIVAS (Azul/Sky) */}
               <div className="p-4 sm:p-6 rounded-2xl border border-sky-100 bg-white shadow-sm flex flex-col justify-between">
                 <div className="flex justify-between items-start mb-4">
                   <p className="text-[8px] uppercase font-black tracking-[0.2em] text-sky-400">Ativas</p>
@@ -145,6 +146,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <h3 className="text-xl sm:text-2xl font-black text-neutral-800">{activeClients.length}</h3>
               </div>
 
+              {/* Card: PESO TOTAL ELIMINADO (Pink/Main) */}
               <div className="p-4 sm:p-6 rounded-2xl bg-rose-600 text-white shadow-xl shadow-rose-100 flex flex-col justify-between overflow-hidden relative">
                 <div className="absolute -right-4 -bottom-4 opacity-10">
                   <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>
@@ -158,6 +160,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <h3 className="text-xl sm:text-2xl font-black relative z-10">{totalWeightLost.toFixed(1)} <span className="text-xs font-light">kg</span></h3>
               </div>
 
+              {/* Card: MÉDIA/SEM (Amber/Ouro) */}
               <div className="p-4 sm:p-6 rounded-2xl border border-amber-100 bg-white shadow-sm flex flex-col justify-between">
                 <div className="flex justify-between items-start mb-4">
                   <p className="text-[8px] uppercase font-black tracking-[0.2em] text-amber-500">Performance</p>
@@ -171,6 +174,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
 
+              {/* Card: PENDENTES (Emerald/Dinheiro) - O NOVO CARD MAIS INTERESSANTE */}
               <div 
                 onClick={() => setActiveMenu('indicacoes')}
                 className="p-4 sm:p-6 rounded-2xl border-2 border-emerald-100 bg-emerald-50/30 shadow-sm flex flex-col justify-between group cursor-pointer hover:border-emerald-300 transition-all"
@@ -293,17 +297,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         {activeMenu === 'indicacoes' && (
           <div className="space-y-6">
-             <h2 className="text-xl font-bold text-rose-600 uppercase tracking-widest">Indicações Recebidas</h2>
+             <h2 className="text-xl font-bold text-rose-600 uppercase tracking-widest">Indicações</h2>
              <div className="bg-white rounded-2xl border border-rose-100 overflow-x-auto shadow-sm">
-                <table className="w-full text-left min-w-[950px]">
+                <table className="w-full text-left min-w-[850px]">
                    <thead className="bg-rose-50 text-rose-600 text-[8px] font-black uppercase tracking-widest">
                       <tr>
-                        <th className="px-6 py-4">Origem (Musa)</th>
-                        <th className="px-6 py-4">Amiga Indicada</th>
-                        <th className="px-6 py-4">Interesse</th>
+                        <th className="px-6 py-4">Origem</th>
+                        <th className="px-6 py-4">Indicada</th>
                         <th className="px-6 py-4">WhatsApp</th>
                         <th className="px-6 py-4">Status</th>
-                        <th className="px-6 py-4 text-right">Comissão</th>
+                        <th className="px-6 py-4 text-right">Pagamento</th>
                       </tr>
                    </thead>
                    <tbody className="divide-y divide-rose-50">
@@ -313,7 +316,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <tr key={ref.id} className="hover:bg-rose-50/10">
                             <td className="px-6 py-4 text-[10px] font-bold uppercase">{referrer?.name}</td>
                             <td className="px-6 py-4 text-[10px]">{ref.friendName}</td>
-                            <td className="px-6 py-4 text-[10px] font-black text-rose-400">{ref.productName}</td>
                             <td className="px-6 py-4 text-[10px] font-mono">
                                <a 
                                  href={`https://wa.me/${ref.friendContact.replace(/\D/g, '')}`} 
