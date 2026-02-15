@@ -34,6 +34,8 @@ const App: React.FC = () => {
       setShowInstallBtn(true);
     };
     window.addEventListener('beforeinstallprompt', handler);
+    // Caso o app já tenha sido instalado, ou o navegador suporte, 
+    // podemos forçar a visibilidade para teste se necessário, mas seguimos o padrão PWA.
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
@@ -280,38 +282,34 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FFF9F9] flex flex-col items-center justify-center p-4 relative overflow-hidden font-inter text-neutral-800">
-      
-      {/* BOTÃO FLUTUANTE DE INSTALAÇÃO - SEMPRE VISÍVEL E PULANTE */}
-      {showInstallBtn && (
-        <div className="fixed bottom-10 left-0 w-full flex justify-center z-[100] px-4">
-          <button 
-            onClick={handleInstallClick}
-            className="bg-musa-gradient text-white px-10 py-4 rounded-full text-xs font-black uppercase tracking-[0.2em] shadow-[0_20px_50px_rgba(192,132,252,0.4)] animate-bounce flex items-center gap-3 border border-white/30 transition-transform active:scale-95 whitespace-nowrap"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Baixar Aplicativo Musas
-            <div className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-            </div>
-          </button>
-        </div>
-      )}
-
       <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl p-8 sm:p-12 text-center border border-rose-50 relative overflow-hidden">
         
-        {/* LOGO MUSA PREMIUM (SILHUETA BRANCA + CHECK INTEGRADO) */}
-        <div className="flex justify-center mb-10">
+        {/* BOTÃO DE INSTALAÇÃO - REPOSICIONADO PARA DENTRO DO CARD COM FOCO TOTAL NO BOUNCE */}
+        {showInstallBtn && (
+          <div className="absolute top-0 left-0 w-full flex justify-center pt-6 z-20">
+            <button 
+              onClick={handleInstallClick}
+              className="bg-musa-gradient text-white px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl animate-bounce flex items-center gap-3 border border-white/20 transition-transform active:scale-95"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              <span>Baixar App Musas</span>
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+              </span>
+            </button>
+          </div>
+        )}
+
+        {/* LOGO MUSA PREMIUM */}
+        <div className={`flex justify-center ${showInstallBtn ? 'mt-12' : 'mt-0'} mb-10 transition-all duration-500`}>
           <div className="w-24 h-24 bg-musa-gradient flex items-center justify-center rounded-[2.5rem] shadow-2xl shadow-rose-200 relative overflow-hidden group">
             <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <svg className="w-16 h-16 text-white relative z-10" fill="currentColor" viewBox="0 0 24 24">
-              {/* Silhueta Feminina Minimalista */}
-              <path d="M12,2c1.1,0,2,0.9,2,2s-0.9,2-2,2s-2-0.9-2-2S10.9,2,12,2z" />
-              <path d="M16.5,10.5c0-1.5-1.5-3-3.5-3.5c-0.5,0-1,0-1.5,0s-1,0-1.5,0c-2,0.5-3.5,2-3.5,3.5c0,2.5,1,3.5,2,4.5c0.5,0.5,1,1.5,1,2.5v2h1v-2c0-1-0.5-2-1-2.5c-0.3-0.3-0.7-0.7-1-1c1-1,3-1,4,0c-0.3,0.3-0.7,0.7-1,1c-0.5,0.5-1,1.5-1,2.5v2h1v-2c0-1,0.5-2,1-2.5C15.5,14,16.5,13,16.5,10.5z" />
-              {/* Check Integrado à Cintura */}
-              <path d="M10,14.5l1.5,1.5l3-3" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <svg className="w-14 h-14 text-white relative z-10" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12,2c1.1,0,2,0.9,2,2s-0.9,2-2,2s-2-0.9-2-2S10.9,2,12,2z M15,7c-1.5-0.5-4.5-0.5-6,0c-1.5,0.5-2,2-2,3.5 c0,2.5,1.5,4,2.5,5c0.5,0.5,1,1.5,1,2.5v2h3v-2c0-1,0.5-2,1-2.5c0.5-0.5,1.5-1,2-1.5c0.5-0.5,1.5-1,2-1.5c0.5-0.5,1.5-1.5,1.5-2.5C17.5,9,16.5,7.5,15,7z" />
+              <path d="M10.5,13.5l1.5,1.5l3-3" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
         </div>

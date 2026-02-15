@@ -2,7 +2,7 @@
 {
   "name": "Projeto Musas",
   "short_name": "Musas",
-  "description": "Consultoria Premium de Emagrecimento Feminino",
+  "description": "Gestão de Emagrecimento e Evolução",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FFF9F9",
