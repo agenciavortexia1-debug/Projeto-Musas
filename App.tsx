@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Client, WeightEntry, Referral, Product, ReferralStatus } from './types';
 import ClientDashboard from './components/ClientDashboard';
@@ -21,30 +22,6 @@ const App: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [view, setView] = useState<'landing' | 'login-client' | 'register' | 'pending-notice'>('landing');
   const [accessCode, setAccessCode] = useState('');
-
-  // PWA Install State
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showInstallBtn, setShowInstallBtn] = useState(false);
-
-  useEffect(() => {
-    const handler = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setShowInstallBtn(true);
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setShowInstallBtn(false);
-    }
-    setDeferredPrompt(null);
-  };
 
   const mapClientFromDB = (c: any): Client => ({
     id: c.id,
@@ -279,69 +256,48 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FFF9F9] flex flex-col items-center justify-center p-4 relative overflow-hidden font-inter text-neutral-800">
-      
-      {/* PWA Botão de Download Dinâmico */}
-      {showInstallBtn && view === 'landing' && (
-        <button 
-          onClick={handleInstallClick}
-          className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] bg-rose-600 text-white px-8 py-4 rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xl animate-bounce flex items-center gap-3"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-          Baixar Aplicativo
-        </button>
-      )}
-
-      <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl p-8 sm:p-14 text-center border border-rose-50 relative">
-        <div className="mb-10 flex justify-center">
-          {/* Logo igual à referência: Quadrado rosa com plus branco */}
-          <div className="w-20 h-20 bg-rose-600 flex items-center justify-center rounded-[1.5rem] shadow-2xl shadow-rose-200">
-            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
+      <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 sm:p-12 text-center border border-rose-50">
+        <div className="mb-8 flex justify-center">
+          <div className="w-16 h-16 bg-rose-600 flex items-center justify-center rounded-2xl shadow-xl shadow-rose-100">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
           </div>
         </div>
         
         <h2 className="text-3xl font-light mb-2 italic">Projeto <span className="font-bold not-italic text-rose-600 tracking-tighter">Musas</span></h2>
-        <p className="text-rose-400 text-[10px] uppercase tracking-[0.4em] mb-12 font-bold">Consultoria @rosimar_emagrecedores</p>
+        <p className="text-rose-400 text-[10px] uppercase tracking-[0.4em] mb-10 font-bold">Consultoria @rosimar_emagrecedores</p>
 
         {view === 'landing' && (
-          <div className="w-full space-y-4">
-            <button onClick={() => setView('login-client')} className="w-full bg-rose-600 text-white font-bold py-5 rounded-2xl hover:bg-rose-700 transition-all uppercase tracking-widest text-xs shadow-xl shadow-rose-100">Acessar Painel</button>
-            <button onClick={() => setView('register')} className="w-full bg-white text-rose-600 font-bold py-5 rounded-2xl border-2 border-rose-50 hover:border-rose-200 transition-all uppercase tracking-widest text-[10px]">Novo Cadastro</button>
-            
-            <div className="pt-8 mt-4 border-t border-rose-50">
-              <p className="text-[8px] text-neutral-400 uppercase font-black tracking-widest leading-relaxed">
-                Para instalar em iPhone:<br/>
-                Clique no <span className="text-rose-400 underline">ícone de compartilhar</span> e depois em <br/>
-                <span className="text-rose-400 font-black">"Adicionar à Tela de Início"</span>
-              </p>
-            </div>
+          <div className="w-full space-y-3">
+            <button onClick={() => setView('login-client')} className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl hover:bg-rose-700 transition-all uppercase tracking-widest text-xs shadow-lg shadow-rose-100">Acessar Painel</button>
+            <button onClick={() => setView('register')} className="w-full bg-white text-rose-600 font-bold py-4 rounded-xl border border-rose-100 hover:border-rose-300 transition-all uppercase tracking-widest text-[10px]">Novo Cadastro</button>
           </div>
         )}
 
         {view === 'pending-notice' && (
           <div className="w-full space-y-8 animate-in zoom-in-95 duration-300">
-            <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto text-2xl shadow-inner">✓</div>
-            <h3 className="text-xl font-bold uppercase tracking-tight">Cadastro Recebido!</h3>
-            <p className="text-xs text-neutral-400 italic px-4">Sua conta está em análise. Aguarde a liberação pela Rosimar para acessar seu painel.</p>
-            <button onClick={() => setView('landing')} className="w-full bg-rose-600 text-white py-5 rounded-2xl font-bold uppercase text-xs shadow-lg">Entendi</button>
+            <div className="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto text-xl">✓</div>
+            <h3 className="text-xl font-bold">Cadastro Recebido!</h3>
+            <p className="text-sm text-neutral-400 italic">Sua conta está em análise. Aguarde a liberação pela Rosimar para acessar.</p>
+            <button onClick={() => setView('landing')} className="w-full bg-rose-600 text-white py-4 rounded-xl font-bold uppercase text-xs">Entendi</button>
           </div>
         )}
 
         {view === 'login-client' && (
           <form onSubmit={handleLogin} className="w-full space-y-6 animate-in slide-in-from-bottom-4 duration-300">
-            <div className="space-y-3 text-left">
-              <label className="text-[9px] font-black text-rose-400 uppercase tracking-widest ml-1">Digite seu Código</label>
+            <div className="space-y-2 text-left">
+              <label className="text-[10px] font-bold text-rose-400 uppercase tracking-widest ml-1">Código de Acesso</label>
               <input 
                 type="password" 
                 required 
                 autoFocus
                 value={accessCode} 
                 onChange={(e) => setAccessCode(e.target.value)} 
-                className="w-full text-center text-3xl font-black tracking-[0.4em] py-6 bg-rose-50/50 border-b-4 border-rose-100 outline-none focus:border-rose-500 transition-all rounded-2xl" 
+                className="w-full text-center text-2xl font-bold tracking-[0.3em] py-5 bg-rose-50 border-b-2 border-rose-200 outline-none focus:border-rose-500 transition-all rounded-xl" 
                 placeholder="••••" 
               />
             </div>
-            <button type="submit" className="w-full bg-rose-600 text-white font-bold py-5 rounded-2xl uppercase text-xs shadow-xl shadow-rose-100">Entrar</button>
-            <button type="button" onClick={() => setView('landing')} className="text-rose-300 text-[9px] uppercase font-black tracking-widest hover:text-rose-500 transition-colors">Voltar</button>
+            <button type="submit" className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl uppercase text-xs shadow-lg shadow-rose-100">Entrar</button>
+            <button type="button" onClick={() => setView('landing')} className="text-rose-300 text-[10px] uppercase font-bold hover:text-rose-500">Voltar para o início</button>
           </form>
         )}
 
@@ -354,6 +310,7 @@ const App: React.FC = () => {
             const password = formData.get('password') as string;
             
             try {
+              // Testando conexão básica primeiro
               const { data: existing, error: checkError } = await supabase
                 .from('clients')
                 .select('id')
@@ -374,35 +331,40 @@ const App: React.FC = () => {
                 height: parseFloat((formData.get('height') as string).replace(',','.')),
                 initial_weight: parseFloat((formData.get('initialWeight') as string).replace(',','.')),
                 target_weight: parseFloat((formData.get('targetWeight') as string).replace(',','.')),
-                start_date: new Date().toISOString(),
+                start_date: new Date().toISOString(), // Enviando data explícita para o gráfico
                 active: false,
-                admin_notes: "Bem-vinda, Musa! ✨ Sua jornada começa aqui. Estou animada para ver sua evolução!"
+                admin_notes: "Bem-vinda à sua nova versão, Musa! ✨ Estou muito feliz em acompanhar sua evolução. Lembre-se: cada pequeno passo te deixa mais próxima do seu grande objetivo. Vamos juntas!"
               }]);
               
               if (insertError) throw insertError;
               setView('pending-notice');
             } catch (err: any) {
-              alert("Erro no cadastro: " + err.message);
+              if (err.message === 'Failed to fetch') {
+                alert("Erro de Conexão: O seu navegador ou rede está bloqueando o banco de dados. Tente desativar o AdBlock ou usar uma aba anônima.");
+              } else {
+                alert("Erro no cadastro: " + err.message);
+              }
+              console.error("Cadastro falhou:", err);
             } finally {
               setIsSubmitting(false);
             }
           }} className="w-full space-y-4 text-left animate-in slide-in-from-bottom-4 duration-300">
             <div className="space-y-3">
-              <input name="name" required placeholder="NOME COMPLETO" className="w-full px-6 py-4 bg-rose-50/50 border border-rose-100 rounded-2xl outline-none text-xs font-bold text-neutral-800 focus:bg-white focus:border-rose-300" />
+              <input name="name" required placeholder="NOME COMPLETO" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold text-neutral-800 focus:bg-white focus:border-rose-300" />
               <div className="grid grid-cols-2 gap-3">
-                <input name="height" required placeholder="ALTURA (ex: 165)" className="w-full px-6 py-4 bg-rose-50/50 border border-rose-100 rounded-2xl outline-none text-xs font-bold focus:bg-white" />
-                <input name="initialWeight" required placeholder="PESO ATUAL (KG)" className="w-full px-6 py-4 bg-rose-50/50 border border-rose-100 rounded-2xl outline-none text-xs font-bold focus:bg-white" />
+                <input name="height" required placeholder="ALTURA (ex: 165)" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold focus:bg-white" />
+                <input name="initialWeight" required placeholder="PESO ATUAL (KG)" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold focus:bg-white" />
               </div>
-              <input name="targetWeight" required placeholder="META DE PESO (KG)" className="w-full px-6 py-4 bg-rose-50/50 border border-rose-100 rounded-2xl outline-none text-xs font-bold focus:bg-white" />
+              <input name="targetWeight" required placeholder="META DE PESO (KG)" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold focus:bg-white" />
               <div className="pt-4 border-t border-rose-50 space-y-2 text-center">
-                <label className="text-[9px] font-black text-rose-400 uppercase tracking-widest">Crie seu código secreto</label>
-                <input name="password" type="password" required maxLength={12} placeholder="••••" className="w-full px-6 py-4 bg-rose-100/50 border-2 border-rose-100 rounded-2xl text-center text-lg font-black tracking-[0.6em] outline-none focus:bg-white" />
+                <label className="text-[9px] font-bold text-rose-400 uppercase tracking-widest">Crie seu código de acesso pessoal</label>
+                <input name="password" type="password" required maxLength={12} placeholder="••••" className="w-full px-5 py-4 bg-rose-100 border border-rose-200 rounded-xl text-center text-sm font-bold tracking-[0.5em] outline-none focus:bg-rose-50" />
               </div>
             </div>
-            <button type="submit" disabled={isSubmitting} className="w-full bg-rose-600 text-white font-bold py-5 rounded-2xl shadow-xl transition-all uppercase tracking-widest text-xs flex items-center justify-center">
-              {isSubmitting ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'SOLICITAR ACESSO'}
+            <button type="submit" disabled={isSubmitting} className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl shadow-lg transition-all uppercase tracking-widest text-xs flex items-center justify-center">
+              {isSubmitting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'SOLICITAR ACESSO'}
             </button>
-            <button type="button" onClick={() => setView('landing')} className="w-full text-rose-300 text-[9px] font-black uppercase tracking-widest text-center mt-2 hover:text-rose-500">Voltar</button>
+            <button type="button" onClick={() => setView('landing')} className="w-full text-rose-300 text-[10px] uppercase font-bold text-center mt-2 hover:text-rose-500">Voltar</button>
           </form>
         )}
       </div>
