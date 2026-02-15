@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Client, WeightEntry, Referral, Product, ReferralStatus } from './types';
+import { Client, WeightEntry, Referral, Product } from './types';
 import ClientDashboard from './components/ClientDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import { supabase } from './lib/supabase';
@@ -22,33 +22,32 @@ const App: React.FC = () => {
   const [view, setView] = useState<'landing' | 'login-client' | 'register' | 'pending-notice'>('landing');
   const [accessCode, setAccessCode] = useState('');
 
-  // PWA - Lógica de Instalação Direta
+  // PWA - Lógica de Instalação Nativa
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
 
   useEffect(() => {
-    const handler = (e: any) => {
-      // Impede o banner padrão do navegador
+    // Escuta o evento do navegador que permite a instalação
+    const handleBeforeInstall = (e: any) => {
       e.preventDefault();
-      // Guarda o evento para disparar quando o usuário clicar no seu botão
       setDeferredPrompt(e);
-      setShowInstallBtn(true);
+      setShowInstallBtn(true); // Só mostra o botão se o navegador permitir instalar
     };
 
-    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
 
-    // Se o app já estiver instalado (standalone), não mostra o botão
+    // Se já estiver rodando como app, esconde o botão
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setShowInstallBtn(false);
     }
 
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
     
-    // Dispara a janela de instalação do navegador na hora
+    // Mostra a janelinha de instalação do navegador na hora
     deferredPrompt.prompt();
     
     const { outcome } = await deferredPrompt.userChoice;
@@ -105,10 +104,9 @@ const App: React.FC = () => {
         })));
         if (allCRes.data) setClients(allCRes.data.map(mapClientFromDB));
         if (allERes.data) {
-            const mapped = allERes.data.map((e: any) => ({
+            setEntries(prev => [...prev, ...allERes.data.map((e: any) => ({
                 id: e.id, clientId: e.client_id, date: e.date, weight: parseFloat(e.weight) || 0, mood: e.mood, notes: e.notes, photo: e.photo
-            }));
-            setEntries(prev => [...prev, ...mapped]);
+            }))]);
         }
         if (pRes.data) setProducts(pRes.data);
         if (refRes.data) setReferrals(refRes.data.map((r: any) => ({
@@ -153,18 +151,11 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setIsAdmin(false);
-    setView('landing');
-    setAccessCode('');
-  };
-
   if (initialLoading || loading) {
     return (
       <div className="min-h-screen bg-[#FFF9F9] flex flex-col items-center justify-center">
         <div className="w-10 h-10 border-4 border-rose-200 border-t-rose-600 rounded-full animate-spin"></div>
-        <p className="mt-4 text-[10px] font-black uppercase text-rose-400 tracking-widest text-center px-4">Preparando sua experiência PWA...</p>
+        <p className="mt-4 text-[10px] font-black uppercase text-rose-400 tracking-widest">Sincronizando...</p>
       </div>
     );
   }
@@ -172,7 +163,8 @@ const App: React.FC = () => {
   if (isAdmin) {
     return (
       <AdminDashboard 
-        clients={clients} entries={entries} referrals={referrals} products={products} onLogout={handleLogout} 
+        clients={clients} entries={entries} referrals={referrals} products={products} 
+        onLogout={() => { setView('landing'); setIsAdmin(false); }} 
         onToggleClientActive={async (id) => {
           const c = clients.find(x => x.id === id);
           await supabase.from('clients').update({ active: !c?.active }).eq('id', id);
@@ -227,15 +219,15 @@ const App: React.FC = () => {
           await supabase.from('clients').update({ profile_image: url }).eq('id', id);
           fetchData(id);
         }}
-        onLogout={handleLogout} 
+        onLogout={() => { setView('landing'); setCurrentUser(null); }} 
       />
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FFF9F9] flex flex-col items-center justify-center p-4 relative overflow-hidden font-inter text-neutral-800">
+    <div className="min-h-screen bg-[#FFF9F9] flex flex-col items-center justify-center p-4 relative overflow-hidden font-inter">
       
-      {/* BOTÃO DE DOWNLOAD DIRETO - EXATAMENTE COMO NA FOTO */}
+      {/* BOTÃO DE DOWNLOAD DIRETO (SEM ALERTA) */}
       {showInstallBtn && (
         <div className="fixed top-6 right-6 z-[100] animate-bounce">
           <button 
@@ -251,29 +243,23 @@ const App: React.FC = () => {
       )}
 
       <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl p-8 sm:p-12 text-center border border-rose-50 relative overflow-hidden">
-        
-        {/* LOGO MUSA - SILHUETA BRANCA COM CHECK NA CINTURA */}
         <div className="flex justify-center mb-10">
-          <div className="w-24 h-24 bg-musa-gradient flex items-center justify-center rounded-[2.5rem] shadow-2xl shadow-rose-200 relative">
+          <div className="w-24 h-24 bg-musa-gradient flex items-center justify-center rounded-[2.5rem] shadow-2xl shadow-rose-200 relative overflow-hidden group">
             <svg className="w-14 h-14 text-white" fill="currentColor" viewBox="0 0 24 24">
-               {/* Cabeça */}
               <circle cx="12" cy="4" r="2" />
-              {/* Corpo e Cintura */}
               <path d="M16 11c0-2-1.5-3.5-3.5-3.5s-3.5 1.5-3.5 3.5c0 1.5 0.5 2.5 1 3.5-0.5 0.5-1 1-1 2v4h6v-4c0-1-0.5-1.5-1-2 0.5-1 1-2 1-3.5z" />
-              {/* Check na Cintura */}
               <path d="M10.5 12.5l1 1l2-2" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
         </div>
         
-        <h2 className="text-3xl font-light mb-2 italic tracking-tight">Projeto <span className="font-extrabold not-italic text-rose-600 tracking-tighter">Musas</span></h2>
+        <h2 className="text-3xl font-light mb-2 italic tracking-tight text-neutral-800">Projeto <span className="font-extrabold not-italic text-rose-600 tracking-tighter">Musas</span></h2>
         <p className="text-rose-400/60 text-[9px] uppercase tracking-[0.5em] mb-12 font-black">Consultoria Rosimar</p>
 
         {view === 'landing' && (
           <div className="w-full space-y-4">
             <button onClick={() => setView('login-client')} className="w-full bg-rose-600 text-white font-black py-5 rounded-2xl hover:bg-rose-700 transition-all uppercase tracking-[0.2em] text-xs shadow-xl shadow-rose-100">Entrar no Painel</button>
             <button onClick={() => setView('register')} className="w-full bg-white text-rose-600 font-bold py-4 rounded-2xl border border-rose-100 hover:border-rose-300 transition-all uppercase tracking-widest text-[10px]">Cadastrar-se</button>
-            <div className="pt-8 border-t border-rose-50 mt-4 text-[8px] text-neutral-400 uppercase font-bold tracking-widest leading-relaxed">Transformando vidas, uma musa por vez. ✨</div>
           </div>
         )}
 
@@ -322,10 +308,10 @@ const App: React.FC = () => {
         )}
 
         {view === 'pending-notice' && (
-          <div className="w-full space-y-8 animate-in zoom-in-95 duration-300 py-10">
+          <div className="w-full space-y-8 py-10">
             <div className="w-14 h-14 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto text-2xl">✓</div>
             <h3 className="text-xl font-bold">Solicitação Enviada!</h3>
-            <p className="text-sm text-neutral-400 font-light px-4">A Rosimar irá validar seu acesso em breve. O app estará pronto para baixar após o login!</p>
+            <p className="text-sm text-neutral-400 font-light px-4">A Rosimar irá validar seu acesso em breve. Após validado, você poderá baixar o app clicando no botão do topo!</p>
             <button onClick={() => setView('landing')} className="w-full bg-rose-600 text-white py-4 rounded-xl font-bold uppercase text-xs">Voltar</button>
           </div>
         )}
