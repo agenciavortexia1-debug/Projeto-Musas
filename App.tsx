@@ -292,9 +292,16 @@ const App: React.FC = () => {
           </button>
         )}
 
+        {/* LOGO MUSA ATUALIZADA */}
         <div className="mb-8 flex justify-center">
-          <div className="w-16 h-16 bg-rose-600 flex items-center justify-center rounded-2xl shadow-xl shadow-rose-100">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+          <div className="w-20 h-20 bg-rose-600 flex items-center justify-center rounded-[2rem] shadow-xl shadow-rose-100 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-tr from-rose-700 to-rose-500 opacity-50"></div>
+            <svg className="w-12 h-12 text-white relative z-10" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12,2C11.17,2,10.5,2.67,10.5,3.5S11.17,5,12,5s1.5-0.67,1.5-1.5S12.83,2,12,2z M12,6c-2.21,0-4,1.79-4,4v4c0,1.1,0.9,2,2,2h4 c1.1,0,2-0.9,2-2v-4C16,7.79,14.21,6,12,6z M16.5,10c-0.28,0-0.5,0.22-0.5,0.5s0.22,0.5,0.5,0.5s0.5-0.22,0.5-0.5S16.78,10,16.5,10z M14,19c0,0.55-0.45,1-1,1h-2c-0.55,0-1-0.45-1-1v-2h4V19z M7.5,10c-0.28,0-0.5,0.22-0.5,0.5s0.22,0.5,0.5,0.5s0.5-0.22,0.5-0.5S7.78,10,7.5,10z M12,14c-1.1,0-2-0.9-2-2c0-1.1,0.9-2,2-2s2,0.9,2,2C14,13.1,13.1,14,12,14z"/>
+              {/* Brilhos de transformação */}
+              <circle cx="18" cy="4" r="1" fill="white" className="animate-pulse" />
+              <circle cx="6" cy="18" r="1.5" fill="white" className="animate-pulse delay-75" />
+            </svg>
           </div>
         </div>
         
@@ -306,7 +313,6 @@ const App: React.FC = () => {
             <button onClick={() => setView('login-client')} className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl hover:bg-rose-700 transition-all uppercase tracking-widest text-xs shadow-lg shadow-rose-100">Acessar Painel</button>
             <button onClick={() => setView('register')} className="w-full bg-white text-rose-600 font-bold py-4 rounded-xl border border-rose-100 hover:border-rose-300 transition-all uppercase tracking-widest text-[10px]">Novo Cadastro</button>
             
-            {/* Download Link for iOS users/manual instructions */}
             <p className="pt-6 text-[8px] text-neutral-400 uppercase font-bold tracking-widest leading-relaxed">
               Para instalar em iPhone:<br/>
               Clique no <span className="text-rose-400">ícone de compartilhar</span> e depois em <span className="text-rose-400">"Adicionar à Tela de Início"</span>
