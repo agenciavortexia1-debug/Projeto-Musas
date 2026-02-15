@@ -1,18 +1,20 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Projeto Musas - Gestão de Emagrecimento</title>
+    <title>Projeto Musas - Consultoria Rosimar</title>
     
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#db2777">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Musas">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3063/3063822.png">
+    
+    <!-- Ícone solicitado: Quadrado Rosa com Plus Branco -->
+    <link rel="apple-touch-icon" href="https://img.icons8.com/nolan/512/plus.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -20,13 +22,15 @@
         body {
             font-family: 'Inter', sans-serif;
             -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
             overscroll-behavior-y: contain;
+            background-color: #FFF9F9;
+        }
+        .bg-musa-gradient {
+            background: linear-gradient(135deg, #db2777 0%, #9d174d 100%);
         }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #fecdd3; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #fda4af; }
     </style>
 <script type="importmap">
 {
@@ -46,17 +50,15 @@
 }
 </script>
 </head>
-<body class="bg-[#FFF9F9] text-slate-900">
+<body>
     <div id="root"></div>
     <script type="module" src="index.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then(reg => {
-            console.log('SW registrado com sucesso');
-          }).catch(err => {
-            console.log('Erro ao registrar SW:', err);
-          });
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('PWA: Service Worker Ativo'))
+            .catch(err => console.log('PWA: Erro no SW', err));
         });
       }
     </script>
