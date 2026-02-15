@@ -280,65 +280,72 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FFF9F9] flex flex-col items-center justify-center p-4 relative overflow-hidden font-inter text-neutral-800">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 sm:p-12 text-center border border-rose-50 relative">
-        {/* PWA Install Notification - Botão de Download */}
+      <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl p-8 sm:p-12 text-center border border-rose-50 relative">
+        {/* PWA Install Notification - Botão de Download Premium */}
         {showInstallBtn && (
           <button 
             onClick={handleInstallClick}
-            className="absolute -top-16 left-1/2 -translate-x-1/2 bg-amber-400 text-white px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl animate-bounce flex items-center gap-2"
+            className="absolute -top-16 left-1/2 -translate-x-1/2 bg-musa-gradient text-white px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl animate-bounce flex items-center gap-3 border border-white/20"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-            Baixar Aplicativo
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            Instalar App Musas
           </button>
         )}
 
-        <div className="mb-8 flex justify-center">
-          <div className="w-16 h-16 bg-rose-600 flex items-center justify-center rounded-2xl shadow-xl shadow-rose-100">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+        {/* LOGO MUSA PREMIUM (SILHUETA + CHECK) */}
+        <div className="mb-10 flex justify-center">
+          <div className="w-24 h-24 bg-musa-gradient flex items-center justify-center rounded-[2.5rem] shadow-2xl shadow-rose-200 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <svg className="w-14 h-14 text-white relative z-10" fill="currentColor" viewBox="0 0 24 24">
+              {/* Silhueta Minimalista */}
+              <path d="M12,2c1.1,0,2,0.9,2,2s-0.9,2-2,2s-2-0.9-2-2S10.9,2,12,2z M15,7c-1.5-0.5-4.5-0.5-6,0c-1.5,0.5-2,2-2,3.5 c0,2.5,1.5,4,2.5,5c0.5,0.5,1,1.5,1,2.5v2h3v-2c0-1,0.5-2,1-2.5c0.5-0.5,1.5-1,2-1.5c0.5-0.5,1-1.5,1-2.5C17.5,9,16.5,7.5,15,7z" />
+              {/* Check Integrado na Cintura */}
+              <path d="M10.5,13.5l1.5,1.5l3-3" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="animate-pulse" />
+            </svg>
           </div>
         </div>
         
-        <h2 className="text-3xl font-light mb-2 italic">Projeto <span className="font-bold not-italic text-rose-600 tracking-tighter">Musas</span></h2>
-        <p className="text-rose-400 text-[10px] uppercase tracking-[0.4em] mb-10 font-bold">Consultoria @rosimar_emagrecedores</p>
+        <h2 className="text-3xl font-light mb-2 italic tracking-tight">Projeto <span className="font-extrabold not-italic text-rose-600 tracking-tighter">Musas</span></h2>
+        <p className="text-rose-400/60 text-[9px] uppercase tracking-[0.5em] mb-12 font-black">Consultoria Rosimar</p>
 
         {view === 'landing' && (
-          <div className="w-full space-y-3">
-            <button onClick={() => setView('login-client')} className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl hover:bg-rose-700 transition-all uppercase tracking-widest text-xs shadow-lg shadow-rose-100">Acessar Painel</button>
-            <button onClick={() => setView('register')} className="w-full bg-white text-rose-600 font-bold py-4 rounded-xl border border-rose-100 hover:border-rose-300 transition-all uppercase tracking-widest text-[10px]">Novo Cadastro</button>
+          <div className="w-full space-y-4">
+            <button onClick={() => setView('login-client')} className="w-full bg-rose-600 text-white font-black py-5 rounded-2xl hover:bg-rose-700 transition-all uppercase tracking-[0.2em] text-xs shadow-xl shadow-rose-100">Entrar no Painel</button>
+            <button onClick={() => setView('register')} className="w-full bg-white text-rose-600 font-bold py-4 rounded-2xl border border-rose-100 hover:border-rose-300 transition-all uppercase tracking-widest text-[10px]">Cadastrar-se</button>
             
-            {/* Download Link for iOS users/manual instructions */}
-            <p className="pt-6 text-[8px] text-neutral-400 uppercase font-bold tracking-widest leading-relaxed">
-              Para instalar em iPhone:<br/>
-              Clique no <span className="text-rose-400">ícone de compartilhar</span> e depois em <span className="text-rose-400">"Adicionar à Tela de Início"</span>
-            </p>
+            <div className="pt-8 border-t border-rose-50 mt-4">
+               <p className="text-[8px] text-neutral-400 uppercase font-bold tracking-widest leading-relaxed">
+                Transformando vidas, uma musa por vez. ✨
+              </p>
+            </div>
           </div>
         )}
 
         {view === 'pending-notice' && (
           <div className="w-full space-y-8 animate-in zoom-in-95 duration-300">
-            <div className="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto text-xl">✓</div>
-            <h3 className="text-xl font-bold">Cadastro Recebido!</h3>
-            <p className="text-sm text-neutral-400 italic">Sua conta está em análise. Aguarde a liberação pela Rosimar para acessar.</p>
-            <button onClick={() => setView('landing')} className="w-full bg-rose-600 text-white py-4 rounded-xl font-bold uppercase text-xs">Entendi</button>
+            <div className="w-14 h-14 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto text-2xl">✓</div>
+            <h3 className="text-xl font-bold">Quase lá, Musa!</h3>
+            <p className="text-sm text-neutral-400 italic font-light px-4">Seu cadastro foi enviado com sucesso. Aguarde a ativação da sua conta pela Rosimar.</p>
+            <button onClick={() => setView('landing')} className="w-full bg-rose-600 text-white py-4 rounded-xl font-bold uppercase text-xs">Voltar</button>
           </div>
         )}
 
         {view === 'login-client' && (
           <form onSubmit={handleLogin} className="w-full space-y-6 animate-in slide-in-from-bottom-4 duration-300">
-            <div className="space-y-2 text-left">
-              <label className="text-[10px] font-bold text-rose-400 uppercase tracking-widest ml-1">Código de Acesso</label>
+            <div className="space-y-3 text-left">
+              <label className="text-[10px] font-black text-rose-300 uppercase tracking-widest ml-1">Seu Código Musa</label>
               <input 
                 type="password" 
                 required 
                 autoFocus
                 value={accessCode} 
                 onChange={(e) => setAccessCode(e.target.value)} 
-                className="w-full text-center text-2xl font-bold tracking-[0.3em] py-5 bg-rose-50 border-b-2 border-rose-200 outline-none focus:border-rose-500 transition-all rounded-xl" 
+                className="w-full text-center text-3xl font-black tracking-[0.4em] py-6 bg-rose-50/50 border-b-4 border-rose-100 outline-none focus:border-rose-500 transition-all rounded-2xl text-rose-600" 
                 placeholder="••••" 
               />
             </div>
-            <button type="submit" className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl uppercase text-xs shadow-lg shadow-rose-100">Entrar</button>
-            <button type="button" onClick={() => setView('landing')} className="text-rose-300 text-[10px] uppercase font-bold hover:text-rose-500">Voltar para o início</button>
+            <button type="submit" className="w-full bg-rose-600 text-white font-black py-5 rounded-2xl uppercase text-xs shadow-xl shadow-rose-100 tracking-widest">Acessar Jornada</button>
+            <button type="button" onClick={() => setView('landing')} className="text-rose-300 text-[10px] uppercase font-bold hover:text-rose-500">Voltar</button>
           </form>
         )}
 
@@ -385,19 +392,19 @@ const App: React.FC = () => {
             }
           }} className="w-full space-y-4 text-left animate-in slide-in-from-bottom-4 duration-300">
             <div className="space-y-3">
-              <input name="name" required placeholder="NOME COMPLETO" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold text-neutral-800 focus:bg-white focus:border-rose-300" />
+              <input name="name" required placeholder="NOME COMPLETO" className="w-full px-5 py-4 bg-rose-50/50 border border-rose-100 rounded-2xl outline-none text-xs font-bold text-neutral-800 focus:bg-white focus:border-rose-300" />
               <div className="grid grid-cols-2 gap-3">
-                <input name="height" required placeholder="ALTURA (ex: 165)" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold focus:bg-white" />
-                <input name="initialWeight" required placeholder="PESO ATUAL (KG)" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold focus:bg-white" />
+                <input name="height" required placeholder="ALTURA (ex: 165)" className="w-full px-5 py-4 bg-rose-50/50 border border-rose-100 rounded-2xl outline-none text-xs font-bold focus:bg-white" />
+                <input name="initialWeight" required placeholder="PESO ATUAL (KG)" className="w-full px-5 py-4 bg-rose-50/50 border border-rose-100 rounded-2xl outline-none text-xs font-bold focus:bg-white" />
               </div>
-              <input name="targetWeight" required placeholder="META DE PESO (KG)" className="w-full px-5 py-4 bg-rose-50 border border-rose-100 rounded-xl outline-none text-xs font-bold focus:bg-white" />
+              <input name="targetWeight" required placeholder="META DE PESO (KG)" className="w-full px-5 py-4 bg-rose-50/50 border border-rose-100 rounded-2xl outline-none text-xs font-bold focus:bg-white" />
               <div className="pt-4 border-t border-rose-50 space-y-2 text-center">
-                <label className="text-[9px] font-bold text-rose-400 uppercase tracking-widest">Crie seu código de acesso pessoal</label>
-                <input name="password" type="password" required maxLength={12} placeholder="••••" className="w-full px-5 py-4 bg-rose-100 border border-rose-200 rounded-xl text-center text-sm font-bold tracking-[0.5em] outline-none focus:bg-rose-50" />
+                <label className="text-[9px] font-black text-rose-300 uppercase tracking-widest">Crie seu código de acesso</label>
+                <input name="password" type="password" required maxLength={12} placeholder="••••" className="w-full px-5 py-5 bg-rose-100 border border-rose-200 rounded-2xl text-center text-xl font-black tracking-[0.5em] outline-none focus:bg-rose-50 text-rose-600" />
               </div>
             </div>
-            <button type="submit" disabled={isSubmitting} className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl shadow-lg transition-all uppercase tracking-widest text-xs flex items-center justify-center">
-              {isSubmitting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'SOLICITAR ACESSO'}
+            <button type="submit" disabled={isSubmitting} className="w-full bg-rose-600 text-white font-black py-5 rounded-2xl shadow-xl transition-all uppercase tracking-widest text-xs flex items-center justify-center">
+              {isSubmitting ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'SOLICITAR ACESSO'}
             </button>
             <button type="button" onClick={() => setView('landing')} className="w-full text-rose-300 text-[10px] uppercase font-bold text-center mt-2 hover:text-rose-500">Voltar</button>
           </form>
