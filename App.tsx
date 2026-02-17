@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Client, WeightEntry, Referral, Product, ReferralStatus } from './types';
 import ClientDashboard from './components/ClientDashboard';
@@ -22,6 +21,49 @@ const App: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [view, setView] = useState<'landing' | 'login-client' | 'register' | 'pending-notice'>('landing');
   const [accessCode, setAccessCode] = useState('');
+
+  // PWA Install Logic
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      // Impede o Chrome de mostrar o prompt automático
+      e.preventDefault();
+      // Salva o evento para ser disparado depois
+      setDeferredPrompt(e);
+      setShowInstallBanner(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    window.addEventListener('appinstalled', () => {
+      setShowInstallBanner(false);
+      setDeferredPrompt(null);
+      console.log('PWA instalado com sucesso');
+    });
+
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    
+    // Mostra o prompt de instalação
+    deferredPrompt.prompt();
+    
+    // Aguarda a escolha do usuário
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      console.log('Usuário aceitou a instalação');
+    } else {
+      console.log('Usuário recusou a instalação');
+    }
+    
+    // Limpa o prompt
+    setDeferredPrompt(null);
+    setShowInstallBanner(false);
+  };
 
   const mapClientFromDB = (c: any): Client => ({
     id: c.id,
@@ -256,7 +298,27 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FFF9F9] flex flex-col items-center justify-center p-4 relative overflow-hidden font-inter text-neutral-800">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 sm:p-12 text-center border border-rose-50">
+      
+      {/* Banner de Instalação PWA */}
+      {showInstallBanner && (
+        <div className="fixed bottom-6 left-4 right-4 z-[100] bg-white border border-rose-100 rounded-3xl shadow-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-slide-up">
+          <div className="flex items-center gap-4">
+             <div className="w-12 h-12 bg-rose-600 rounded-2xl flex items-center justify-center shadow-lg shadow-rose-100 flex-shrink-0">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
+             </div>
+             <div>
+                <h4 className="text-xs font-black uppercase text-neutral-800">Instalar Aplicativo</h4>
+                <p className="text-[10px] text-neutral-400 font-medium">Acesso rápido e offline para sua evolução.</p>
+             </div>
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto">
+             <button onClick={() => setShowInstallBanner(false)} className="flex-1 sm:flex-none px-6 py-3 bg-neutral-100 text-neutral-400 rounded-xl text-[10px] font-black uppercase tracking-widest">Agora Não</button>
+             <button onClick={handleInstallClick} className="flex-1 sm:flex-none px-8 py-3 bg-rose-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-rose-100">Baixar Agora</button>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 sm:p-12 text-center border border-rose-50 relative">
         <div className="mb-8 flex justify-center">
           <div className="w-16 h-16 bg-rose-600 flex items-center justify-center rounded-2xl shadow-xl shadow-rose-100">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
@@ -270,6 +332,17 @@ const App: React.FC = () => {
           <div className="w-full space-y-3">
             <button onClick={() => setView('login-client')} className="w-full bg-rose-600 text-white font-bold py-5 rounded-xl hover:bg-rose-700 transition-all uppercase tracking-widest text-xs shadow-lg shadow-rose-100">Acessar Painel</button>
             <button onClick={() => setView('register')} className="w-full bg-white text-rose-600 font-bold py-4 rounded-xl border border-rose-100 hover:border-rose-300 transition-all uppercase tracking-widest text-[10px]">Novo Cadastro</button>
+            
+            {/* Botão de Download Manual caso o banner seja fechado */}
+            {deferredPrompt && (
+              <button 
+                onClick={handleInstallClick}
+                className="mt-6 flex items-center justify-center gap-2 w-full text-rose-400 text-[9px] font-black uppercase tracking-[0.2em] hover:text-rose-600 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Baixar Aplicativo no Celular
+              </button>
+            )}
           </div>
         )}
 
@@ -310,7 +383,6 @@ const App: React.FC = () => {
             const password = formData.get('password') as string;
             
             try {
-              // Testando conexão básica primeiro
               const { data: existing, error: checkError } = await supabase
                 .from('clients')
                 .select('id')
@@ -331,7 +403,7 @@ const App: React.FC = () => {
                 height: parseFloat((formData.get('height') as string).replace(',','.')),
                 initial_weight: parseFloat((formData.get('initialWeight') as string).replace(',','.')),
                 target_weight: parseFloat((formData.get('targetWeight') as string).replace(',','.')),
-                start_date: new Date().toISOString(), // Enviando data explícita para o gráfico
+                start_date: new Date().toISOString(),
                 active: false,
                 admin_notes: "Bem-vinda à sua nova versão, Musa! ✨ Estou muito feliz em acompanhar sua evolução. Lembre-se: cada pequeno passo te deixa mais próxima do seu grande objetivo. Vamos juntas!"
               }]);
